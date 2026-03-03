@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+
+        <title>{{ config('app.name', 'Laravel') }}</title>
+
+        <!-- Fonts -->
+        <link rel="preconnect" href="https://fonts.bunny.net">
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+
+        <!-- Scripts -->
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    </head>
+    <body class="font-sans antialiased">
+        <div class="min-h-screen bg-gray-100">
+            @include('layouts.navigation')
+
+            <!-- Page Heading -->
+            @isset($header)
+                <header class="bg-white shadow">
+                    <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                        {{ $header }}
+                    </div>
+                </header>
+            @endisset
+
+            <!-- Page Content -->
+            <main>
+                @yield('content')
+            </main>
+        </div>
+    </body>
+</html>
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+/* Admin Sidebar (Boutique) */
+.admin-sidebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 220px;
+  height: 100vh;
+  flex-shrink: 0;
+  background-color: #ffffff;
+  border-right: 1px solid #e0e0e0;
+  padding: 24px 16px;
+  box-sizing: border-box;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+
+.admin-sidebar .logo-section {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.admin-sidebar .logo-img {
+  width: 78px;
+  height: 78px;
+  border-radius: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #fbe6e6;
+  object-fit: cover;
+}
+
+.admin-sidebar .user-name {
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  color: #5d3a00;
+}
+
+.admin-sidebar .user-role {
+  font-weight: 500;
+  font-size: 11px;
+  color: #8c5c3c;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.admin-sidebar .nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.admin-sidebar .nav-title {
+  margin: 16px 0 6px;
+  font-weight: 600;
+  font-size: 11px;
+  color: #8c5c3c;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.admin-sidebar .nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: #4a4a4a;
+  font-size: 12.5px;
+  transition: all 0.2s ease;
+}
+
+.admin-sidebar .nav-link:hover {
+  background-color: #d6a77a;
+  color: #ffffff;
+}
+
+.admin-sidebar .nav-link.active {
+  background-color: #d6a77a;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.admin-sidebar .nav-icon {
+  font-size: 14px;
+}
+
+.admin-sidebar .logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 6px;
+  background-color: #ffffff;
+  color: #d6a77a;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.2s;
+  border: 1px solid #f0e4d9;
+  cursor: pointer;
+  width: 100%;
+}
+
+.admin-sidebar .logout-btn:hover {
+  background-color: #c18f5f;
+  color: #ffffff;
+}
+
+
