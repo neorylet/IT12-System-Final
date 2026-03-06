@@ -8,10 +8,6 @@
         <h1>Products</h1>
         <p>Manage product catalog before stock operations.</p>
     </div>
-
-    <a href="{{ route('admin.inventory.index') }}" class="btn-outline">
-        ← Back to Inventory
-    </a>
 </div>
 
 @if(session('success'))

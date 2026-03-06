@@ -16,10 +16,6 @@
         <input class="input-field" name="q" value="{{ $q ?? '' }}" placeholder="Search shelf, renter, product...">
         <button class="btn-outline" type="submit">Search</button>
     </form>
-
-    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <a href="{{ route('admin.products.index') }}" class="btn-primary">View Products</a>
-    </div>
 </div>
 
 @php

@@ -27,20 +27,13 @@
    href="{{ route('admin.inventory.index') }}">
    <span class="nav-icon">📦</span> Inventory
 </a>
-    </div>
 
-    <div class="nav-group">
-      <div class="nav-title">Sales and Financial</div>
-<a class="nav-link {{ request()->is('admin/rental-payments*') ? 'active' : '' }}"
-   href="{{ route('admin.rentalpayment.index') }}">
-  <span class="nav-icon">💳</span> Rental Payments
-</a>
-
-<a class="nav-link {{ request()->is('admin/renter-payouts*') ? 'active' : '' }}"
-   href="{{ route('admin.renterpayout.index') }}">
-  <span class="nav-icon">💰</span> Renter Payouts
+<a class="nav-link {{ request()->is('admin/products*') ? 'active' : '' }}"
+   href="{{ route('admin.products.index') }}">
+   <span class="nav-icon">📦</span> Products
 </a>
     </div>
+
   </div>
 
   <form method="POST" action="{{ route('logout') }}">

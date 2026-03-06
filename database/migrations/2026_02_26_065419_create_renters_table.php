@@ -15,6 +15,7 @@ return new class extends Migration
 
             $table->string('renter_first_name');
             $table->string('renter_last_name');
+            $table->string('renter_company_name');
             $table->string('contact_person');
             $table->string('contact_number', 50);
             $table->string('email')->unique();
