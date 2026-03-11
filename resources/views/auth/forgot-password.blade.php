@@ -1,4 +1,8 @@
+<<<<<<< Updated upstream
 <x-guest-layout>
+=======
+<x-guest-layout> 
+>>>>>>> Stashed changes
     <style>
         /* Reset & base */
         * { box-sizing: border-box; margin: 0; padding: 0; }
