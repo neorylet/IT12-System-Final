@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Admin\Inventory;
+namespace App\Http\Controllers\Staff\Inventory;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shelf;
@@ -16,8 +16,8 @@ class InventoryController extends Controller
         $shelves = Shelf::with(['renter', 'products.inventory'])
             ->when($q, function ($query) use ($q) {
                 $query->where('shelf_number', 'like', "%{$q}%")
-                      ->orWhereHas('renter', fn($r) => $r->where('renter_company_name', 'like', "%{$q}%"))
-                      ->orWhereHas('products', fn($p) => $p->where('product_name', 'like', "%{$q}%"));
+                    ->orWhereHas('renter', fn($r) => $r->where('renter_company_name', 'like', "%{$q}%"))
+                    ->orWhereHas('products', fn($p) => $p->where('product_name', 'like', "%{$q}%"));
             })
             ->orderBy('shelf_number')
             ->get();
@@ -27,13 +27,6 @@ class InventoryController extends Controller
             ->take(20)
             ->get();
 
-        $pendingCount = InventoryTransaction::where('status', 'pending')->count();
-
-        return view('admin.inventory.index', compact(
-            'shelves',
-            'transactions',
-            'q',
-            'pendingCount'
-        ));
+        return view('staff.inventory.index', compact('shelves', 'transactions', 'q'));
     }
 }

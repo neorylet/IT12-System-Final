@@ -32,6 +32,11 @@
    href="{{ route('admin.products.index') }}">
    <span class="nav-icon">📦</span> Products
 </a>
+
+<a class="nav-link {{ request()->is('admin/logs*') ? 'active' : '' }}"
+   href="{{ route('admin.logs.index') }}">
+   <span class="nav-icon">🧾</span> Audit Logs
+</a>
     </div>
 
   </div>

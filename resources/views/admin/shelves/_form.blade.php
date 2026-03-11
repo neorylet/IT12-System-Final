@@ -1,58 +1,11 @@
-@php $isEdit = isset($shelf); @endphp
-
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap:18px;">
-
-    <div>
-        <label>Shelf Number</label>
-        <input name="shelf_number"
-               value="{{ old('shelf_number', $shelf->shelf_number ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div>
-        <label>Monthly Rent</label>
-        <input type="number" step="0.01" name="monthly_rent"
-               value="{{ old('monthly_rent', $shelf->monthly_rent ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div style="grid-column:1 / -1;">
-        <label>Assign Renter (Company)</label>
-        <select name="renter_id" style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-            <option value="">— Unassigned —</option>
-            @foreach($renters as $r)
-                <option value="{{ $r->renter_id }}"
-                    {{ (string)old('renter_id', $shelf->renter_id ?? '') === (string)$r->renter_id ? 'selected' : '' }}>
-                    {{ $r->renter_company_name }}
-                </option>
-            @endforeach
-        </select>
-        <div style="font-size:12px; color:#9a8575; margin-top:6px;">
-            If a renter is selected, status will automatically be set to <strong>Occupied</strong>.
-        </div>
-    </div>
-
-    <div>
-        <label>Contract Start</label>
-        <input type="date" name="start_date"
-               value="{{ old('start_date', $shelf->start_date ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div>
-        <label>Contract End</label>
-        <input type="date" name="end_date"
-               value="{{ old('end_date', $shelf->end_date ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    {{-- we keep shelf_status hidden because we auto-set it --}}
-    <input type="hidden" name="shelf_status" value="{{ old('shelf_status', $shelf->shelf_status ?? 'Available') }}">
-</div>
+@php
+    $isEdit = isset($shelf);
+@endphp
 
 @if($errors->any())
-    <div style="margin-top:12px; padding:10px 12px; background:#fff; border:1px solid #f0d6d6; border-radius:10px; color:#8a2f2f;">
-        <ul style="margin:0; padding-left:18px;">
+    <div class="form-alert form-alert-danger">
+        <div class="form-alert-title">Please review the following:</div>
+        <ul class="form-error-list">
             @foreach($errors->all() as $error)
                 <li>{{ $error }}</li>
             @endforeach
@@ -60,11 +13,84 @@
     </div>
 @endif
 
-<div style="display:flex; gap:10px; margin-top:16px;">
-    <button type="submit" class="btn-primary" style="background:#d6a77a; color:#fff; border:none;">
+<div class="form-card">
+    <div class="form-card-header">
+        <h2 class="form-card-title">Shelf Information</h2>
+        <p class="form-card-subtitle">Enter the shelf details and optional renter assignment.</p>
+    </div>
+
+    <div class="form-grid">
+        <div class="form-group">
+            <label class="form-label">Shelf Number</label>
+            <input
+                type="text"
+                name="shelf_number"
+                class="form-input"
+                value="{{ old('shelf_number', $shelf->shelf_number ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Monthly Rent</label>
+            <input
+                type="number"
+                step="0.01"
+                name="monthly_rent"
+                class="form-input"
+                value="{{ old('monthly_rent', $shelf->monthly_rent ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group form-group-full">
+            <label class="form-label">Assign Renter (Company)</label>
+            <select name="renter_id" class="form-input form-select">
+                <option value="">— Unassigned —</option>
+                @foreach($renters as $r)
+                    <option value="{{ $r->renter_id }}"
+                        {{ (string) old('renter_id', $shelf->renter_id ?? '') === (string) $r->renter_id ? 'selected' : '' }}>
+                        {{ $r->renter_company_name }}
+                    </option>
+                @endforeach
+            </select>
+            <div class="form-help-text">
+                If a renter is selected, status will automatically be set to <strong>Occupied</strong>.
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Contract Start</label>
+            <input
+                type="date"
+                name="start_date"
+                class="form-input"
+                value="{{ old('start_date', $shelf->start_date ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Contract End</label>
+            <input
+                type="date"
+                name="end_date"
+                class="form-input"
+                value="{{ old('end_date', $shelf->end_date ?? '') }}"
+            >
+        </div>
+
+        <input
+            type="hidden"
+            name="shelf_status"
+            value="{{ old('shelf_status', $shelf->shelf_status ?? 'Available') }}"
+        >
+    </div>
+</div>
+
+<div class="form-actions">
+    <button type="submit" class="btn-primary">
         {{ $isEdit ? 'Update Shelf' : 'Create Shelf' }}
     </button>
-    <a href="{{ route('admin.shelves.index') }}" style="align-self:center; text-decoration:none; color:#7c6a5d;">
+
+    <a href="{{ route('admin.shelves.index') }}" class="btn-text-link">
         Cancel
     </a>
 </div>

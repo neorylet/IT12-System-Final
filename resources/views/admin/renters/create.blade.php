@@ -7,13 +7,12 @@
     <p>Create a new lessee record.</p>
 </div>
 
-<div style="display:flex; justify-content:center;">
-    <div class="activity-section form-card">
-    <form method="POST" action="{{ route('admin.renters.store') }}">
-        @csrf
-        @include('admin.renters._form')
-    </form>
+<div class="form-page-wrap">
+    <div class="form-shell">
+        <form method="POST" action="{{ route('admin.renters.store') }}">
+            @csrf
+            @include('admin.renters._form')
+        </form>
     </div>
 </div>
-
 @endsection
