@@ -7,8 +7,8 @@
     <p>Update shelf assignment and contract dates.</p>
 </div>
 
-<div style="display:flex; justify-content:center;">
-    <div class="activity-section form-card" style="max-width:760px; width:100%;">
+<div class="form-page-wrap">
+    <div class="form-shell">
         <form method="POST" action="{{ route('admin.shelves.update', $shelf) }}">
             @csrf
             @method('PUT')

@@ -3,7 +3,7 @@
 
 @section('content')
 
-<div class="header-section" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+<div class="header-section">
     <div>
         <h1>Products</h1>
         <p>Manage product catalog before stock operations.</p>
@@ -25,7 +25,6 @@
     </div>
 @endif
 
-{{-- TOP TOOLBAR --}}
 <div class="toolbar">
     <form method="GET" action="{{ route('admin.products.index') }}" class="search-form">
         <input class="input-field"
@@ -40,7 +39,6 @@
     </a>
 </div>
 
-{{-- PRODUCTS TABLE --}}
 <div class="activity-section" style="margin-top:16px;">
     <div class="activity-header">Product List</div>
 
@@ -64,7 +62,7 @@
                     <tr>
                         <td>
                             <strong>{{ $product->product_name }}</strong>
-                            <div style="font-size:12px; color:#9a8575;">
+                            <div style="font-size:12px; color:#6b7280; margin-top:4px;">
                                 {{ $product->description ?? '—' }}
                             </div>
                         </td>
@@ -88,16 +86,16 @@
                         </td>
 
                         <td>
-                            <span class="badge
-                                {{ $product->status === 'Active' ? 'badge-available' : 'badge-occupied' }}">
+                            <span class="badge {{ $product->status === 'Active' ? 'badge-available' : 'badge-occupied' }}">
                                 {{ strtoupper($product->status) }}
                             </span>
                         </td>
 
-                        <td style="text-align:center;">
+                        <td style="text-align:center; white-space:nowrap;">
                             <a href="{{ route('admin.products.edit', $product) }}"
-                               class="btn-mini-outline">
-                                Edit
+                               class="btn-mini-outline"
+                               title="Edit">
+                                <i data-lucide="pencil" width="16" height="16"></i>
                             </a>
 
                             <form method="POST"
@@ -107,9 +105,10 @@
                                 @method('DELETE')
 
                                 <button type="submit"
-                                        class="btn-mini-outline"
+                                        class="btn-danger-mini"
+                                        title="Delete"
                                         onclick="return confirm('Delete this product?')">
-                                    Delete
+                                    <i data-lucide="trash-2" width="16" height="16"></i>
                                 </button>
                             </form>
                         </td>
@@ -125,7 +124,6 @@
         </table>
     </div>
 
-    {{-- Pagination --}}
     <div style="margin-top:14px;">
         {{ $products->links() }}
     </div>

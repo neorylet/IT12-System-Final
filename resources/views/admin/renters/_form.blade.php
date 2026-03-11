@@ -1,69 +1,11 @@
 @php
-  $isEdit = isset($renter);
+    $isEdit = isset($renter);
 @endphp
 
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
-    <div>
-        <label>First Name</label>
-        <input name="renter_first_name" value="{{ old('renter_first_name', $renter->renter_first_name ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div>
-        <label>Last Name</label>
-        <input name="renter_last_name" value="{{ old('renter_last_name', $renter->renter_last_name ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div style="grid-column:1 / -1;">
-        <label>Company Name</label>
-        <input name="renter_company_name" value="{{ old('renter_company_name', $renter->renter_company_name ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div>
-        <label>Contact Person</label>
-        <input name="contact_person" value="{{ old('contact_person', $renter->contact_person ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div>
-        <label>Contact Number</label>
-        <input name="contact_number" value="{{ old('contact_number', $renter->contact_number ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div style="grid-column:1 / -1;">
-        <label>Email</label>
-        <input name="email" value="{{ old('email', $renter->email ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div>
-        <label>Contract Start</label>
-        <input type="date" name="contract_start" value="{{ old('contract_start', $renter->contract_start ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div>
-        <label>Contract End</label>
-        <input type="date" name="contract_end" value="{{ old('contract_end', $renter->contract_end ?? '') }}"
-               style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-    </div>
-
-    <div>
-        <label>Status</label>
-        <select name="status" style="width:100%; padding:10px 12px; border:1px solid #efe5da; border-radius:10px;">
-            @php $val = old('status', $renter->status ?? 'active'); @endphp
-            <option value="active" {{ $val === 'active' ? 'selected' : '' }}>active</option>
-            <option value="inactive" {{ $val === 'inactive' ? 'selected' : '' }}>inactive</option>
-        </select>
-    </div>
-</div>
-
 @if($errors->any())
-    <div style="margin-top:12px; padding:10px 12px; background:#fff; border:1px solid #f0d6d6; border-radius:10px; color:#8a2f2f;">
-        <ul style="margin:0; padding-left:18px;">
+    <div class="form-alert form-alert-danger">
+        <div class="form-alert-title">Please review the following:</div>
+        <ul class="form-error-list">
             @foreach($errors->all() as $error)
                 <li>{{ $error }}</li>
             @endforeach
@@ -71,11 +13,110 @@
     </div>
 @endif
 
-<div style="display:flex; gap:10px; margin-top:16px;">
-    <button type="submit" class="btn-primary" style="background:#d6a77a; color:#fff; border:none;">
+<div class="form-card">
+    <div class="form-card-header">
+        <h2 class="form-card-title">Renter Information</h2>
+        <p class="form-card-subtitle">Enter the renter's profile and contract details.</p>
+    </div>
+
+    <div class="form-grid">
+        <div class="form-group">
+            <label class="form-label">First Name</label>
+            <input
+                type="text"
+                name="renter_first_name"
+                class="form-input"
+                value="{{ old('renter_first_name', $renter->renter_first_name ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Last Name</label>
+            <input
+                type="text"
+                name="renter_last_name"
+                class="form-input"
+                value="{{ old('renter_last_name', $renter->renter_last_name ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group form-group-full">
+            <label class="form-label">Company Name</label>
+            <input
+                type="text"
+                name="renter_company_name"
+                class="form-input"
+                value="{{ old('renter_company_name', $renter->renter_company_name ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Contact Person</label>
+            <input
+                type="text"
+                name="contact_person"
+                class="form-input"
+                value="{{ old('contact_person', $renter->contact_person ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Contact Number</label>
+            <input
+                type="text"
+                name="contact_number"
+                class="form-input"
+                value="{{ old('contact_number', $renter->contact_number ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group form-group-full">
+            <label class="form-label">Email</label>
+            <input
+                type="email"
+                name="email"
+                class="form-input"
+                value="{{ old('email', $renter->email ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Contract Start</label>
+            <input
+                type="date"
+                name="contract_start"
+                class="form-input"
+                value="{{ old('contract_start', $renter->contract_start ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Contract End</label>
+            <input
+                type="date"
+                name="contract_end"
+                class="form-input"
+                value="{{ old('contract_end', $renter->contract_end ?? '') }}"
+            >
+        </div>
+
+        <div class="form-group">
+            <label class="form-label">Status</label>
+            @php $val = old('status', $renter->status ?? 'active'); @endphp
+            <select name="status" class="form-input form-select">
+                <option value="active" {{ $val === 'active' ? 'selected' : '' }}>Active</option>
+                <option value="inactive" {{ $val === 'inactive' ? 'selected' : '' }}>Inactive</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="form-actions">
+    <button type="submit" class="btn-primary">
         {{ $isEdit ? 'Update Renter' : 'Create Renter' }}
     </button>
-    <a href="{{ route('admin.renters.index') }}" style="align-self:center; text-decoration:none; color:#7c6a5d;">
+
+    <a href="{{ route('admin.renters.index') }}" class="btn-text-link">
         Cancel
     </a>
 </div>

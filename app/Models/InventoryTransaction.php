@@ -13,17 +13,19 @@ class InventoryTransaction extends Model
     const CREATED_AT = 'created_at';
     const UPDATED_AT = null;
 
-    protected $fillable = [
-        'transaction_type',
-        'renter_id',
-        'shelf_id',
-        'transaction_date',
-        'reference_no',
-        'remarks',
-        'created_by',
-        'approved_by',
-        'approved_at',
-    ];
+protected $fillable = [
+    'transaction_type',
+    'renter_id',
+    'shelf_id',
+    'transaction_date',
+    'reference_no',
+    'remarks',
+    'status',
+    'created_by',
+    'approved_by',
+    'approved_at',
+    'review_remarks',
+];
 
     public function renter()
     {

@@ -7,13 +7,13 @@
     <p>Update renter details and contract.</p>
 </div>
 
-<div style="display:flex; justify-content:center;">
-    <div class="activity-section form-card">
-    <form method="POST" action="{{ route('admin.renters.update', $renter) }}">
-        @csrf
-        @method('PUT')
-        @include('admin.renters._form', ['renter' => $renter])
-    </form>
+<div class="form-page-wrap">
+    <div class="form-shell">
+        <form method="POST" action="{{ route('admin.renters.update', $renter) }}">
+            @csrf
+            @method('PUT')
+            @include('admin.renters._form', ['renter' => $renter])
+        </form>
     </div>
 </div>
 @endsection

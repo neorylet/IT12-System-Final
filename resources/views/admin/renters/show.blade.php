@@ -7,22 +7,72 @@
     <p>{{ $renter->renter_company_name }}</p>
 </div>
 
-<div class="activity-section">
-    <table class="activity-table" style="min-width:auto;">
-        <tbody>
-            <tr><th style="width:180px;">Name</th><td>{{ $renter->renter_first_name }} {{ $renter->renter_last_name }}</td></tr>
-            <tr><th>Company</th><td>{{ $renter->renter_company_name }}</td></tr>
-            <tr><th>Contact Person</th><td>{{ $renter->contact_person }}</td></tr>
-            <tr><th>Contact Number</th><td>{{ $renter->contact_number }}</td></tr>
-            <tr><th>Email</th><td>{{ $renter->email }}</td></tr>
-            <tr><th>Contract</th><td>{{ $renter->contract_start }} → {{ $renter->contract_end }}</td></tr>
-            <tr><th>Status</th><td><span class="badge">{{ strtoupper($renter->status) }}</span></td></tr>
-        </tbody>
-    </table>
+<div class="detail-page-wrap">
+    <div class="detail-shell">
+        <div class="detail-card">
+            <div class="detail-card-header">
+                <h2 class="detail-card-title">Profile Overview</h2>
+                <p class="detail-card-subtitle">Complete renter and contract information.</p>
+            </div>
 
-    <div style="display:flex; gap:10px; margin-top:16px;">
-        <a class="logout-btn" style="text-decoration:none;" href="{{ route('admin.renters.edit', $renter) }}">Edit</a>
-        <a href="{{ route('admin.renters.index') }}" style="align-self:center; text-decoration:none; color:#7c6a5d;">Back</a>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Name</div>
+                    <div class="detail-value">
+                        {{ $renter->renter_first_name }} {{ $renter->renter_last_name }}
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Company</div>
+                    <div class="detail-value">{{ $renter->renter_company_name }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Contact Person</div>
+                    <div class="detail-value">{{ $renter->contact_person ?: '—' }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Contact Number</div>
+                    <div class="detail-value">{{ $renter->contact_number ?: '—' }}</div>
+                </div>
+
+                <div class="detail-item detail-item-full">
+                    <div class="detail-label">Email</div>
+                    <div class="detail-value">{{ $renter->email ?: '—' }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Contract Start</div>
+                    <div class="detail-value">{{ $renter->contract_start ?: '—' }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Contract End</div>
+                    <div class="detail-value">{{ $renter->contract_end ?: '—' }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value">
+                        <span class="badge {{ strtolower($renter->status) === 'active' ? 'badge-available' : 'badge-occupied' }}">
+                            {{ strtoupper($renter->status) }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="{{ route('admin.renters.edit', $renter) }}" class="btn-primary">
+                Edit Renter
+            </a>
+
+            <a href="{{ route('admin.renters.index') }}" class="btn-text-link">
+                Back to List
+            </a>
+        </div>
     </div>
 </div>
 @endsection

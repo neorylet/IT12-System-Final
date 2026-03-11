@@ -1,10 +1,10 @@
-@extends('layouts.app_a')
-@section('title', 'Adjustment')
+@extends('layouts.app_s')
+@section('title', 'Stock In Request')
 
 @section('content')
 <div class="header-section">
-  <h1>Adjustment</h1>
-  <p>Correct inventory quantities (Set / Increase / Decrease).</p>
+    <h1>Stock In Request</h1>
+    <p>Submit stock-in items for admin approval.</p>
 </div>
 
 @if ($errors->any())
@@ -23,7 +23,7 @@
 @if(!empty($selectedShelf))
   <div class="form-page-wrap" style="padding-top:0;">
     <div class="success-box form-inline-note">
-      <strong>Adjustment for:</strong>
+      <strong>Stock In Request for:</strong>
       Shelf {{ $selectedShelf->shelf_number }} • {{ $selectedShelf->renter?->renter_company_name ?? 'Unassigned' }}
     </div>
   </div>
@@ -33,14 +33,14 @@
   <div class="form-shell form-shell-wide">
     <div class="form-card">
       <div class="form-card-header">
-        <h2 class="form-card-title">Adjustment Form</h2>
-        <p class="form-card-subtitle">Select a shelf, add items, and choose how each quantity should be adjusted.</p>
+        <h2 class="form-card-title">Stock In Request Form</h2>
+        <p class="form-card-subtitle">Add one or more items under a single stock-in request.</p>
       </div>
 
-      <form method="POST" action="{{ route('admin.inventory.adjust.store') }}" class="transaction-form">
+      <form method="POST" action="{{ route('staff.inventory.stockin.store') }}" class="transaction-form">
         @csrf
 
-        <div class="transaction-top-grid">
+        <div class="transaction-top-grid transaction-top-grid-3">
           <div class="form-group form-group-full">
             <label class="form-label">Shelf</label>
             <select name="shelf_id" class="form-input form-select" required>
@@ -52,15 +52,39 @@
                 </option>
               @endforeach
             </select>
+            <div class="form-help-text">
+              Tip: Click “Stock In” from Inventory and the shelf will be selected automatically.
+            </div>
           </div>
 
-          <div class="form-group form-group-full">
+          <div class="form-group">
+            <label class="form-label">Reference No (optional)</label>
+            <input
+              name="reference_no"
+              class="form-input"
+              value="{{ old('reference_no') }}"
+              placeholder="e.g. DR-00012"
+            >
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Transaction Date</label>
+            <input
+              type="date"
+              name="transaction_date"
+              class="form-input"
+              value="{{ old('transaction_date', now()->toDateString()) }}"
+              required
+            >
+          </div>
+
+          <div class="form-group">
             <label class="form-label">Remarks (optional)</label>
             <input
               name="remarks"
               class="form-input"
               value="{{ old('remarks') }}"
-              placeholder="Reason for adjustment..."
+              placeholder="Notes..."
             >
           </div>
         </div>
@@ -69,7 +93,7 @@
           <div class="transaction-items-header">
             <div>
               <div class="transaction-items-title">Items</div>
-              <div class="transaction-items-subtitle">Set, increase, or decrease quantity per row.</div>
+              <div class="transaction-items-subtitle">These items will be submitted for admin approval.</div>
             </div>
 
             <button type="button" class="btn-action-chip" id="btnAddRow">+ Add Item</button>
@@ -77,47 +101,85 @@
 
           <div class="table-card-wrap">
             <div class="activity-table-scrollable">
-              <table class="activity-table">
+              <table class="activity-table" id="itemsTable">
                 <thead>
                   <tr>
                     <th style="width:4%; text-align:center;">#</th>
-                    <th style="width:50%;">Product (On-hand)</th>
-                    <th style="width:20%;">Mode</th>
-                    <th style="width:16%; text-align:right;">Qty</th>
-                    <th style="width:10%; text-align:right;">Remove</th>
+                    <th style="width:24%;">Product</th>
+                    <th style="width:12%;">Lot # (opt)</th>
+                    <th style="width:12%;">Mfg (opt)</th>
+                    <th style="width:12%;">Expiry (opt)</th>
+                    <th style="width:14%; text-align:right;">Qty</th>
+                    <th style="width:14%; text-align:right;">Unit Cost</th>
+                    <th style="width:8%; text-align:right;">Remove</th>
                   </tr>
                 </thead>
+
                 <tbody id="itemsTbody">
                   <tr>
                     <td class="rowNo" style="text-align:center;">1</td>
+
                     <td>
                       <select name="items[0][product_id]" class="form-input form-select" required>
                         <option value="">— Select product —</option>
                         @foreach($products as $p)
                           <option value="{{ $p->product_id }}"
                             {{ (string)old('items.0.product_id') === (string)$p->product_id ? 'selected' : '' }}>
-                            {{ $p->product_name }} ({{ $p->category }}) — On hand: {{ $p->inventory?->quantity_on_hand ?? 0 }}
+                            {{ $p->product_name }} ({{ $p->category }})
                           </option>
                         @endforeach
                       </select>
                     </td>
+
                     <td>
-                      <select name="items[0][mode]" class="form-input form-select" required>
-                        <option value="set" {{ old('items.0.mode','set')==='set'?'selected':'' }}>Set</option>
-                        <option value="increase" {{ old('items.0.mode')==='increase'?'selected':'' }}>Increase</option>
-                        <option value="decrease" {{ old('items.0.mode')==='decrease'?'selected':'' }}>Decrease</option>
-                      </select>
+                      <input
+                        name="items[0][lot_number]"
+                        class="form-input"
+                        placeholder="LOT-001"
+                        value="{{ old('items.0.lot_number') }}"
+                      >
                     </td>
+
+                    <td>
+                      <input
+                        type="date"
+                        name="items[0][manufacturing_date]"
+                        class="form-input"
+                        value="{{ old('items.0.manufacturing_date') }}"
+                      >
+                    </td>
+
+                    <td>
+                      <input
+                        type="date"
+                        name="items[0][expiration_date]"
+                        class="form-input"
+                        value="{{ old('items.0.expiration_date') }}"
+                      >
+                    </td>
+
                     <td>
                       <input
                         type="number"
-                        min="0"
+                        min="1"
                         name="items[0][quantity]"
                         class="form-input input-align-right"
-                        value="{{ old('items.0.quantity',0) }}"
+                        value="{{ old('items.0.quantity') }}"
                         required
                       >
                     </td>
+
+                    <td>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        name="items[0][unit_cost]"
+                        class="form-input input-align-right"
+                        value="{{ old('items.0.unit_cost') }}"
+                      >
+                    </td>
+
                     <td style="text-align:right;">
                       <button type="button" class="btn-row-remove btnRemoveRow">✕</button>
                     </td>
@@ -128,8 +190,12 @@
           </div>
 
           <div class="form-actions form-actions-right">
-            <a href="{{ route('admin.inventory.index') }}" class="btn-outline">Cancel</a>
-            <button type="submit" class="btn-primary">Save Adjustment</button>
+            <a href="{{ route('staff.inventory.index') }}" class="btn-outline">Cancel</a>
+            <button type="submit" class="btn-primary">Submit Request</button>
+          </div>
+
+          <div class="transaction-footnote">
+            All items will stay pending until reviewed by admin.
           </div>
         </div>
       </form>
@@ -143,30 +209,29 @@
   const btnAdd = document.getElementById('btnAddRow');
 
   const productOptionsHtml = `{!! collect($products)->map(function($p){
-    $label = e($p->product_name).' ('.e($p->category).') — On hand: '.((int)optional($p->inventory)->quantity_on_hand);
-    return '<option value="'.$p->product_id.'">'.$label.'</option>';
-  })->implode('') !!}`;
+      $label = e($p->product_name).' ('.e($p->category).')';
+      return '<option value="'.$p->product_id.'">'.$label.'</option>';
+    })->implode('') !!}`;
 
   function rowHtml(index){
     return `
       <tr>
         <td class="rowNo" style="text-align:center;">${index + 1}</td>
+
         <td>
           <select name="items[${index}][product_id]" class="form-input form-select" required>
             <option value="">— Select product —</option>
             ${productOptionsHtml}
           </select>
         </td>
-        <td>
-          <select name="items[${index}][mode]" class="form-input form-select" required>
-            <option value="set">Set</option>
-            <option value="increase">Increase</option>
-            <option value="decrease">Decrease</option>
-          </select>
-        </td>
-        <td>
-          <input type="number" min="0" name="items[${index}][quantity]" class="form-input input-align-right" value="0" required>
-        </td>
+
+        <td><input name="items[${index}][lot_number]" class="form-input" placeholder="LOT-001"></td>
+        <td><input type="date" name="items[${index}][manufacturing_date]" class="form-input"></td>
+        <td><input type="date" name="items[${index}][expiration_date]" class="form-input"></td>
+
+        <td><input type="number" min="1" name="items[${index}][quantity]" class="form-input input-align-right" required></td>
+        <td><input type="number" step="0.01" min="0" name="items[${index}][unit_cost]" class="form-input input-align-right"></td>
+
         <td style="text-align:right;">
           <button type="button" class="btn-row-remove btnRemoveRow">✕</button>
         </td>
@@ -176,9 +241,11 @@
 
   function reindex(){
     const rows = Array.from(tbody.querySelectorAll('tr'));
+
     rows.forEach((tr, i) => {
       const rn = tr.querySelector('.rowNo');
       if (rn) rn.textContent = String(i + 1);
+
       tr.querySelectorAll('input, select').forEach(el => {
         const name = el.getAttribute('name');
         if (!name) return;
@@ -202,6 +269,7 @@
       alert('At least one item is required.');
       return;
     }
+
     btn.closest('tr').remove();
     reindex();
   });

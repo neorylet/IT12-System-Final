@@ -7,20 +7,60 @@
     <p>{{ $shelf->renter?->renter_company_name ?? 'Unassigned' }}</p>
 </div>
 
-<div class="activity-section">
-    <table class="activity-table" style="min-width:auto;">
-        <tbody>
-            <tr><th style="width:180px;">Shelf Number</th><td>{{ $shelf->shelf_number }}</td></tr>
-            <tr><th>Status</th><td><span class="badge">{{ strtoupper($shelf->shelf_status) }}</span></td></tr>
-            <tr><th>Monthly Rent</th><td>₱{{ number_format($shelf->monthly_rent, 2) }}</td></tr>
-            <tr><th>Assigned Renter</th><td>{{ $shelf->renter?->renter_company_name ?? '—' }}</td></tr>
-            <tr><th>Contract Dates</th><td>{{ $shelf->start_date }} → {{ $shelf->end_date ?? '—' }}</td></tr>
-        </tbody>
-    </table>
+<div class="detail-page-wrap">
+    <div class="detail-shell">
+        <div class="detail-card">
+            <div class="detail-card-header">
+                <h2 class="detail-card-title">Shelf Overview</h2>
+                <p class="detail-card-subtitle">Shelf assignment, status, and contract details.</p>
+            </div>
 
-    <div style="display:flex; gap:10px; margin-top:16px;">
-        <a class="logout-btn" style="text-decoration:none;" href="{{ route('admin.shelves.edit', $shelf) }}">Edit</a>
-        <a href="{{ route('admin.shelves.index') }}" style="align-self:center; text-decoration:none; color:#7c6a5d;">Back</a>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Shelf Number</div>
+                    <div class="detail-value">{{ $shelf->shelf_number }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Status</div>
+                    <div class="detail-value">
+                        <span class="badge {{ strtolower($shelf->shelf_status) === 'available' ? 'badge-available' : 'badge-occupied' }}">
+                            {{ strtoupper($shelf->shelf_status) }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Monthly Rent</div>
+                    <div class="detail-value">₱{{ number_format($shelf->monthly_rent, 2) }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Assigned Renter</div>
+                    <div class="detail-value">{{ $shelf->renter?->renter_company_name ?? '—' }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Contract Start</div>
+                    <div class="detail-value">{{ $shelf->start_date ?? '—' }}</div>
+                </div>
+
+                <div class="detail-item">
+                    <div class="detail-label">Contract End</div>
+                    <div class="detail-value">{{ $shelf->end_date ?? '—' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <a href="{{ route('admin.shelves.edit', $shelf) }}" class="btn-primary">
+                Edit Shelf
+            </a>
+
+            <a href="{{ route('admin.shelves.index') }}" class="btn-text-link">
+                Back to List
+            </a>
+        </div>
     </div>
 </div>
 @endsection
