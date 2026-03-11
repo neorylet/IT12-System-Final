@@ -1,5 +1,9 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 <x-guest-layout>
+=======
+<x-guest-layout> 
+>>>>>>> Stashed changes
 =======
 <x-guest-layout> 
 >>>>>>> Stashed changes
@@ -216,12 +220,18 @@
         <div class="container-register">
             <div class="brand">
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
                 <img src="{{ asset('build/images/whatever-logo.png') }}" alt="Application logo" class="brand-logo">
             </div>
 
 =======
                     <img src="{{ asset('build/images/whatever-logo.png') }}" alt="Application logo" class="brand-logo">
                 </div>
+>>>>>>> Stashed changes
+=======
+                <img src="{{ asset('build/images/whatever-logo.png') }}" alt="Application logo" class="brand-logo">
+            </div>
+
 >>>>>>> Stashed changes
             <div class="card-register">
                 <div class="card-header">

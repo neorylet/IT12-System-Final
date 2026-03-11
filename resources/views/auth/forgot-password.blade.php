@@ -1,5 +1,9 @@
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 <x-guest-layout>
+=======
+<x-guest-layout> 
+>>>>>>> Stashed changes
 =======
 <x-guest-layout> 
 >>>>>>> Stashed changes
