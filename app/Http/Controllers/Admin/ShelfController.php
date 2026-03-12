@@ -14,7 +14,7 @@ class ShelfController extends Controller
         $q = $request->query('q');
 
         $shelves = Shelf::query()
-            ->with('renter:renter_id,renter_company_name') // eager load
+            ->with('renter:renter_id,renter_company_name')
             ->when($q, function ($query) use ($q) {
                 $query->where('shelf_number', 'like', "%{$q}%")
                       ->orWhere('shelf_status', 'like', "%{$q}%")
@@ -39,24 +39,27 @@ class ShelfController extends Controller
         return view('admin.shelves.create', compact('renters'));
     }
 
-public function store(Request $request)
-{
-    $validated = $request->validate([
-        'shelf_number' => ['required', 'string', 'max:20', 'unique:shelves,shelf_number'],
-        'monthly_rent' => ['required', 'numeric', 'min:0'],
-    ]);
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'shelf_number' => ['required', 'string', 'max:20', 'unique:shelves,shelf_number'],
+            'monthly_rent' => ['required', 'numeric', 'min:0'],
+            'renter_id'    => ['nullable', 'exists:renters,renter_id'],
+            'start_date'   => ['nullable', 'date'],
+            'end_date'     => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
 
-    Shelf::create([
-        'shelf_number' => $validated['shelf_number'],
-        'monthly_rent' => $validated['monthly_rent'],
-        'renter_id' => null,
-        'start_date' => null,
-        'end_date' => null,
-        'shelf_status' => 'Available',
-    ]);
+        Shelf::create([
+            'shelf_number' => $validated['shelf_number'],
+            'monthly_rent' => $validated['monthly_rent'],
+            'renter_id'    => $validated['renter_id'] ?? null,
+            'start_date'   => $validated['start_date'] ?? null,
+            'end_date'     => $validated['end_date'] ?? null,
+            'shelf_status' => !empty($validated['renter_id']) ? 'Occupied' : 'Available',
+        ]);
 
-    return redirect()->route('admin.shelves.index')->with('success', 'Shelf created successfully.');
-}
+        return redirect()->route('admin.shelves.index')->with('success', 'Shelf created successfully.');
+    }
 
     public function show(Shelf $shelf)
     {
@@ -76,23 +79,18 @@ public function store(Request $request)
 
     public function update(Request $request, Shelf $shelf)
     {
-$validated = $request->validate([
-    'shelf_number' => [
-        'required','string','max:20',
-        'unique:shelves,shelf_number,' . $shelf->shelf_id . ',shelf_id'
-    ],
-    'renter_id' => ['nullable', 'exists:renters,renter_id'],
-    'monthly_rent' => ['required', 'numeric', 'min:0'],
-    'start_date' => ['required', 'date'],
-    'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
-    'shelf_status' => ['required', 'in:Available,Occupied'],
-]);
+        $validated = $request->validate([
+            'shelf_number' => [
+                'required', 'string', 'max:20',
+                'unique:shelves,shelf_number,' . $shelf->shelf_id . ',shelf_id'
+            ],
+            'monthly_rent' => ['required', 'numeric', 'min:0'],
+            'renter_id'    => ['nullable', 'exists:renters,renter_id'],
+            'start_date'   => ['nullable', 'date'],
+            'end_date'     => ['nullable', 'date', 'after_or_equal:start_date'],
+        ]);
 
-        if (!empty($validated['renter_id'])) {
-            $validated['shelf_status'] = 'Occupied';
-        } else {
-            $validated['shelf_status'] = 'Available';
-        }
+        $validated['shelf_status'] = !empty($validated['renter_id']) ? 'Occupied' : 'Available';
 
         $shelf->update($validated);
 

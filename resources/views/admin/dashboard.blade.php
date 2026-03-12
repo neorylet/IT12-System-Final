@@ -32,11 +32,6 @@
             <div class="metric-note">Units currently in stock</div>
         </div>
 
-        <div class="metric-card">
-            <div class="metric-label">Inventory Retail Value</div>
-            <div class="metric-value">₱{{ number_format($inventoryRetailValue ?? 0, 2) }}</div>
-            <div class="metric-note">Estimated value (qty × product price)</div>
-        </div>
     </div>
 
     <div class="stats-grid secondary-grid">
@@ -58,11 +53,6 @@
             <div class="metric-note">Products or transactions waiting review</div>
         </div>
 
-        <div class="metric-card">
-            <div class="metric-label">Today's Sales</div>
-            <div class="metric-value">₱{{ number_format($todaySalesTotal ?? 0, 2) }}</div>
-            <div class="metric-note">Sales recorded today</div>
-        </div>
     </div>
 
     <div class="panel">
