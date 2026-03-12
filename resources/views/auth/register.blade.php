@@ -1,12 +1,4 @@
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
 <x-guest-layout>
-=======
-<x-guest-layout> 
->>>>>>> Stashed changes
-=======
-<x-guest-layout> 
->>>>>>> Stashed changes
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,300;0,400;1,300&display=swap');
 
@@ -219,20 +211,9 @@
     <div class="register-wrapper">
         <div class="container-register">
             <div class="brand">
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
                 <img src="{{ asset('build/images/whatever-logo.png') }}" alt="Application logo" class="brand-logo">
             </div>
 
-=======
-                    <img src="{{ asset('build/images/whatever-logo.png') }}" alt="Application logo" class="brand-logo">
-                </div>
->>>>>>> Stashed changes
-=======
-                <img src="{{ asset('build/images/whatever-logo.png') }}" alt="Application logo" class="brand-logo">
-            </div>
-
->>>>>>> Stashed changes
             <div class="card-register">
                 <div class="card-header">
                     <h1 class="card-title">Create account</h1>
