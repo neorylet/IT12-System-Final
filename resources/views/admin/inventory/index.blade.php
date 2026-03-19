@@ -2,260 +2,738 @@
 @section('title', 'Inventory')
 
 @section('content')
-<div class="header-section">
-    <h1>Inventory</h1>
-    <p>Overview of products, shelf stock, and recent activity.</p>
-</div>
 
-@if(session('success'))
-    <div class="success-box">{{ session('success') }}</div>
-@endif
-
-<div class="toolbar">
-    <form method="GET" action="{{ route('admin.inventory.index') }}" class="search-form">
-        <input class="input-field" name="q" value="{{ $q ?? '' }}" placeholder="Search shelf, renter, product...">
-        <button class="btn-outline" type="submit">Search</button>
-    </form>
-</div>
-
-@php
-    $allProducts = collect();
-    foreach(($shelves ?? []) as $sh){
-        $allProducts = $allProducts->merge($sh->products ?? collect());
+<style>
+    .inventory-page {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
     }
 
-    $totalProducts = $allProducts->count();
-    $totalQty = $allProducts->sum(fn($p) => $p->inventory?->quantity_on_hand ?? 0);
+    .inventory-topbar {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
 
-    $lowStockCount = $allProducts->filter(function($p){
-        $onHand = $p->inventory?->quantity_on_hand ?? 0;
-        $reorder = $p->inventory?->reorder_level ?? 0;
-        return $reorder > 0 && $onHand <= $reorder;
-    })->count();
+    .inventory-cards-grid {
+        margin-top: 4px;
+    }
 
-    $expiringSoon = $expiringSoon ?? 0;
-    $pendingApprovals = $pendingApprovals ?? 0;
-@endphp
+    .panel {
+        background: #fff;
+        border: 1px solid #efe5da;
+        border-radius: 16px;
+        overflow: hidden;
+    }
 
-<div class="inventory-cards-grid" style="margin-top:12px;">
-    <div class="stat-card">
-        <div class="stat-label">Total Products</div>
-        <div class="stat-value">{{ $totalProducts }}</div>
-        <div class="stat-footer">Catalog items across all shelves</div>
+    .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 16px 18px;
+        border-bottom: 1px solid #f3e8dd;
+        background: #fffdf9;
+    }
+
+    .panel-title-wrap {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    .panel-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #3b2f2f;
+    }
+
+    .panel-subtitle {
+        margin: 0;
+        font-size: 12px;
+        color: #8b7b70;
+    }
+
+    .panel-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .panel-body {
+        padding: 16px 18px;
+    }
+
+    .panel-body.no-pad {
+        padding: 0;
+    }
+
+    .panel-scroll {
+        overflow: auto;
+    }
+
+    .panel-scroll.shelves-scroll {
+        max-height: min(58vh, 420px);
+        padding: 12px;
+    }
+
+    .panel-scroll.expiry-scroll {
+        max-height: min(55vh, 340px);
+    }
+
+    .panel-scroll.transactions-scroll {
+        max-height: min(55vh, 300px);
+    }
+
+    .stack-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .shelf-card {
+        background: #fffdf9;
+        border: 1px solid #efe5da;
+        border-radius: 14px;
+        padding: 14px 16px;
+    }
+
+    .shelf-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+
+    .shelf-card-main {
+        min-width: 240px;
+    }
+
+    .shelf-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+        font-size: 15px;
+        color: #2f2a26;
+    }
+
+    .shelf-sub {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #7b6d63;
+    }
+
+    .shelf-stats {
+        display: flex;
+        align-items: stretch;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .mini-stat {
+        min-width: 76px;
+        background: #fff;
+        border: 1px solid #efe5da;
+        border-radius: 12px;
+        padding: 10px 12px;
+    }
+
+    .mini-label {
+        font-size: 11px;
+        color: #8b7b70;
+        text-transform: uppercase;
+        letter-spacing: .06em;
+    }
+
+    .mini-value {
+        margin-top: 4px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #3b2f2f;
+    }
+
+    .inventory-filter-form,
+    .expiry-filter-form {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .card-link-reset {
+        text-decoration: none;
+        color: inherit;
+        display: block;
+    }
+
+    .stat-card-highlight {
+        border-color: #d6a77a !important;
+        background: #fffaf5 !important;
+    }
+
+    .stat-card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .panel-toggle {
+        border: 1px solid #e7d8ca;
+        background: #fff;
+        color: #5c4636;
+        border-radius: 10px;
+        padding: 7px 12px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .panel-toggle:hover {
+        background: #fff7ee;
+    }
+
+    .panel.is-collapsed .panel-body,
+    .panel.is-collapsed .panel-scroll,
+    .panel.is-collapsed .panel-header + .panel-body,
+    .panel.is-collapsed .panel-header + .panel-scroll {
+        display: none;
+    }
+
+    .modal-card-lg {
+        max-width: 860px;
+        width: min(94vw, 860px);
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .modal-head-clean {
+        padding: 16px 20px;
+        border-bottom: 1px solid #efe5da;
+    }
+
+    .modal-action-row-clean {
+        padding: 14px 20px 0;
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .modal-body-clean {
+        padding: 20px;
+    }
+
+    .modal-foot-clean {
+        padding: 14px 20px;
+        border-top: 1px solid #efe5da;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .modal-table-wrap {
+        border: 1px solid #efe5da;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .receipt-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+
+    .receipt-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #3b2f2f;
+    }
+
+    .receipt-subtitle {
+        font-size: 13px;
+        color: #7b6d63;
+        margin-top: 2px;
+    }
+
+    .receipt-ref-label,
+    .receipt-field-label {
+        font-size: 12px;
+        color: #8b7b70;
+    }
+
+    .receipt-ref-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #3b2f2f;
+    }
+
+    .receipt-card {
+        border: 1px solid #efe5da;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #fffdf9;
+    }
+
+    .receipt-card-top {
+        padding: 16px 18px;
+    }
+
+    .receipt-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 24px;
+    }
+
+    .receipt-field-value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #2f2a26;
+    }
+
+    .receipt-remarks {
+        margin-top: 14px;
+    }
+
+    .receipt-items-section {
+        border-top: 1px solid #efe5da;
+        padding: 16px 18px;
+    }
+
+    .receipt-items-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #3b2f2f;
+        margin-bottom: 10px;
+    }
+
+    .receipt-items-scroll {
+        overflow-x: auto;
+    }
+
+    .receipt-items-table {
+        min-width: 700px;
+    }
+
+    .receipt-total-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 12px;
+    }
+
+    .receipt-total-box {
+        min-width: 240px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #2f2a26;
+    }
+
+    .align-right {
+        text-align: right;
+    }
+
+    .align-center {
+        text-align: center;
+    }
+
+    .muted-text {
+        font-size: 12px;
+        color: #8b7b70;
+    }
+
+    .w-180 {
+        min-width: 180px;
+    }
+
+    @media (max-width: 768px) {
+        .receipt-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="inventory-page">
+
+    <div class="inventory-topbar">
+        <div class="header-section">
+            <h1>Inventory</h1>
+            <p>Overview of products, shelf stock, and recent activity.</p>
+        </div>
+
+        @if(session('success'))
+            <div class="success-box">{{ session('success') }}</div>
+        @endif
+
+        <div class="toolbar">
+            <form method="GET" action="{{ route('admin.inventory.index') }}" class="search-form inventory-filter-form">
+                <input class="input-field" name="q" value="{{ $q ?? '' }}" placeholder="Search shelf, renter, product...">
+                <button class="btn-outline" type="submit">Search</button>
+            </form>
+        </div>
     </div>
 
-    <div class="stat-card">
-        <div class="stat-label">Total Stock</div>
-        <div class="stat-value">{{ $totalQty }}</div>
-        <div class="stat-footer">Units currently on hand</div>
-    </div>
+    @php
+        $allProducts = collect();
+        foreach(($shelves ?? []) as $sh){
+            $allProducts = $allProducts->merge($sh->products ?? collect());
+        }
 
-    <div class="stat-card">
-        <div class="stat-label">Low Stock Alerts</div>
-        <div class="stat-value">{{ $lowStockCount }}</div>
-        <div class="stat-footer">Items at or below reorder level</div>
-    </div>
+        $totalProducts = $allProducts->count();
+        $totalQty = $allProducts->sum(fn($p) => $p->inventory?->quantity_on_hand ?? 0);
 
-    <div class="stat-card">
-        <div class="stat-label">Expiring Soon</div>
-        <div class="stat-value">{{ $expiringSoon }}</div>
-        <div class="stat-footer">Batches expiring soon (placeholder)</div>
-    </div>
+        $lowStockCount = $allProducts->filter(function($p){
+            $onHand = $p->inventory?->quantity_on_hand ?? 0;
+            $reorder = $p->inventory?->reorder_level ?? 0;
+            return $reorder > 0 && $onHand <= $reorder;
+        })->count();
 
-    <a href="{{ route('admin.inventory.pending') }}" style="text-decoration:none; color:inherit; display:block;">
-        <div class="stat-card" style="{{ ($pendingCount ?? 0) > 0 ? 'border-color:#d6a77a; background:#fffaf5;' : '' }}">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
-                <div>
-                    <div class="stat-label">Pending Approvals</div>
-                    <div class="stat-value">{{ $pendingCount ?? 0 }}</div>
+        $expiringSoon = $expiringSoon ?? 0;
+        $pendingApprovals = $pendingApprovals ?? 0;
+    @endphp
+
+    <div class="inventory-cards-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Products</div>
+            <div class="stat-value">{{ $totalProducts }}</div>
+            <div class="stat-footer">Catalog items across all shelves</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Total Stock</div>
+            <div class="stat-value">{{ $totalQty }}</div>
+            <div class="stat-footer">Units currently on hand</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Low Stock Alerts</div>
+            <div class="stat-value">{{ $lowStockCount }}</div>
+            <div class="stat-footer">Items at or below reorder level</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-label">Expiring Soon</div>
+            <div class="stat-value">{{ $expiringSoon }}</div>
+            <div class="stat-footer">Batches expiring within 7 days</div>
+        </div>
+
+
+        <a href="{{ route('admin.inventory.pending') }}" class="card-link-reset">
+            <div class="stat-card {{ ($pendingCount ?? 0) > 0 ? 'stat-card-highlight' : '' }}">
+                <div class="stat-card-top">
+                    <div>
+                        <div class="stat-label">Pending Approvals</div>
+                        <div class="stat-value">{{ $pendingCount ?? 0 }}</div>
+                    </div>
+
+                    <span class="btn-action-chip">
+                        Open
+                    </span>
                 </div>
 
-                <span class="btn-action-chip" style="min-height:auto; padding:6px 12px;">
-                    Open
-                </span>
+                <div class="stat-footer">
+                    @if(($pendingCount ?? 0) > 0)
+                        Click this card to review approval requests
+                    @else
+                        No pending requests right now
+                    @endif
+                </div>
+            </div>
+        </a>
+    </div>
+
+    {{-- SHELVES --}}
+    <section class="panel js-collapsible-panel" data-panel="shelves">
+        <div class="panel-header">
+            <div class="panel-title-wrap">
+                <h2 class="panel-title">Shelves</h2>
+                <p class="panel-subtitle">Shelf assignment, renter info, and stock summary.</p>
             </div>
 
-            <div class="stat-footer">
-                @if(($pendingCount ?? 0) > 0)
-                    Click this card to review approval requests
-                @else
-                    No pending requests right now
-                @endif
+            <div class="panel-actions">
+                <button type="button" class="panel-toggle js-panel-toggle">Collapse</button>
             </div>
         </div>
-    </a>
-</div>
 
-<div class="activity-section" style="margin-top:16px;">
-    <div class="activity-header">Shelves</div>
+        <div class="panel-scroll shelves-scroll">
+            <div class="stack-list">
+                @forelse($shelves as $shelf)
+                    @php
+                        $products = $shelf->products ?? collect();
 
-    <div class="scroll-box" style="padding:12px;">
-        <div style="display:flex; flex-direction:column; gap:12px;">
-            @forelse($shelves as $shelf)
-                @php
-                    $products = $shelf->products ?? collect();
+                        $uniqueProducts = $products->count();
+                        $shelfQty = $products->sum(fn($p) => $p->inventory?->quantity_on_hand ?? 0);
 
-                    $uniqueProducts = $products->count();
-                    $shelfQty = $products->sum(fn($p) => $p->inventory?->quantity_on_hand ?? 0);
+                        $shelfLow = $products->filter(function($p){
+                            $onHand = $p->inventory?->quantity_on_hand ?? 0;
+                            $reorder = $p->inventory?->reorder_level ?? 0;
+                            return $reorder > 0 && $onHand <= $reorder;
+                        })->count();
 
-                    $shelfLow = $products->filter(function($p){
-                        $onHand = $p->inventory?->quantity_on_hand ?? 0;
-                        $reorder = $p->inventory?->reorder_level ?? 0;
-                        return $reorder > 0 && $onHand <= $reorder;
-                    })->count();
+                        $itemsPayload = $products->map(function ($p) {
+                            return [
+                                'name'    => $p->product_name,
+                                'category'=> $p->category,
+                                'price'   => (float) $p->price,
+                                'on_hand' => (int) optional($p->inventory)->quantity_on_hand,
+                                'reorder' => (int) optional($p->inventory)->reorder_level,
+                                'status'  => $p->status,
+                            ];
+                        })->values();
+                    @endphp
 
-                    $itemsPayload = $products->map(function ($p) {
-                        return [
-                            'name'    => $p->product_name,
-                            'category'=> $p->category,
-                            'price'   => (float) $p->price,
-                            'on_hand' => (int) optional($p->inventory)->quantity_on_hand,
-                            'reorder' => (int) optional($p->inventory)->reorder_level,
-                            'status'  => $p->status,
-                        ];
-                    })->values();
-                @endphp
+                    <div class="shelf-card">
+                        <div class="shelf-card-top">
+                            <div class="shelf-card-main">
+                                <div class="shelf-title">
+                                    Shelf <strong>{{ $shelf->shelf_number }}</strong>
+                                    <span class="badge {{ $shelf->shelf_status === 'Available' ? 'badge-available' : 'badge-occupied' }}">
+                                        {{ strtoupper($shelf->shelf_status) }}
+                                    </span>
+                                </div>
 
-                <div class="shelf-card">
-                    <div class="shelf-card-top">
-                        <div style="min-width:240px;">
-                            <div class="shelf-title">
-                                Shelf <strong>{{ $shelf->shelf_number }}</strong>
-                                <span class="badge {{ $shelf->shelf_status === 'Available' ? 'badge-available' : 'badge-occupied' }}">
-                                    {{ strtoupper($shelf->shelf_status) }}
-                                </span>
+                                <div class="shelf-sub">
+                                    {{ $shelf->renter?->renter_company_name ?? '— Unassigned —' }}
+                                </div>
                             </div>
 
-                            <div class="shelf-sub">
-                                {{ $shelf->renter?->renter_company_name ?? '— Unassigned —' }}
-                            </div>
-                        </div>
+                            <div class="shelf-stats">
+                                <div class="mini-stat">
+                                    <div class="mini-label">Products</div>
+                                    <div class="mini-value">{{ $uniqueProducts }}</div>
+                                </div>
 
-                        <div class="shelf-stats">
-                            <div class="mini-stat">
-                                <div class="mini-label">Products</div>
-                                <div class="mini-value">{{ $uniqueProducts }}</div>
-                            </div>
+                                <div class="mini-stat">
+                                    <div class="mini-label">Qty</div>
+                                    <div class="mini-value">{{ $shelfQty }}</div>
+                                </div>
 
-                            <div class="mini-stat">
-                                <div class="mini-label">Qty</div>
-                                <div class="mini-value">{{ $shelfQty }}</div>
-                            </div>
+                                <div class="mini-stat">
+                                    <div class="mini-label">Low</div>
+                                    <div class="mini-value">{{ $shelfLow }}</div>
+                                </div>
 
-                            <div class="mini-stat">
-                                <div class="mini-label">Low</div>
-                                <div class="mini-value">{{ $shelfLow }}</div>
+                                <button type="button"
+                                        class="btn-action-chip js-open-items"
+                                        data-shelf-id="{{ $shelf->shelf_id }}"
+                                        data-shelf="{{ $shelf->shelf_number }}"
+                                        data-renter="{{ $shelf->renter?->renter_company_name ?? '— Unassigned —' }}"
+                                        data-items='@json($itemsPayload)'>
+                                    Manage Items
+                                </button>
                             </div>
-
-                            <button type="button"
-                                    class="btn-action-chip js-open-items"
-                                    data-shelf-id="{{ $shelf->shelf_id }}"
-                                    data-shelf="{{ $shelf->shelf_number }}"
-                                    data-renter="{{ $shelf->renter?->renter_company_name ?? '— Unassigned —' }}"
-                                    data-items='@json($itemsPayload)'>
-                                Manage Items
-                            </button>
                         </div>
                     </div>
-                </div>
-            @empty
-                <div class="empty-state">No shelves found.</div>
-            @endforelse
+                @empty
+                    <div class="empty-state">No shelves found.</div>
+                @endforelse
+            </div>
         </div>
+    </section>
+
+{{-- EXPIRY DETAILS --}}
+<section class="panel js-collapsible-panel" data-panel="expiry">
+
+    <div class="panel-header expiry-header-combined">
+
+        {{-- TOP ROW --}}
+        <div class="expiry-header-top">
+            <div class="panel-title-wrap">
+                <h2 class="panel-title">Expiry Details</h2>
+                <p class="panel-subtitle">Batches, lot tracking, and expiry monitoring.</p>
+            </div>
+
+            <div class="panel-actions">
+                <button type="button" class="panel-toggle js-panel-toggle">Collapse</button>
+            </div>
+        </div>
+
+        {{-- FILTER ROW --}}
+        <form method="GET"
+              action="{{ route('admin.inventory.index') }}"
+              class="expiry-header-filters">
+
+            <input type="hidden" name="q" value="{{ $q ?? '' }}">
+
+            <select name="expiry_status" class="input-field">
+                <option value="">All Statuses</option>
+                <option value="Expired" {{ ($expiryStatus ?? '') === 'Expired' ? 'selected' : '' }}>Expired</option>
+                <option value="Expires Today" {{ ($expiryStatus ?? '') === 'Expires Today' ? 'selected' : '' }}>Expires Today</option>
+                <option value="Expiring Soon" {{ ($expiryStatus ?? '') === 'Expiring Soon' ? 'selected' : '' }}>Expiring Soon</option>
+                <option value="Fresh" {{ ($expiryStatus ?? '') === 'Fresh' ? 'selected' : '' }}>Fresh</option>
+                <option value="No Expiry" {{ ($expiryStatus ?? '') === 'No Expiry' ? 'selected' : '' }}>No Expiry</option>
+            </select>
+
+            <select name="expiry_shelf" class="input-field">
+                <option value="">All Shelves</option>
+                @foreach(($expiryShelves ?? []) as $s)
+                    <option value="{{ $s->shelf_id }}" {{ (string)($expiryShelf ?? '') === (string)$s->shelf_id ? 'selected' : '' }}>
+                        Shelf {{ $s->shelf_number }}
+                    </option>
+                @endforeach
+            </select>
+
+            <button class="btn-outline" type="submit">Filter</button>
+            <a href="{{ route('admin.inventory.index') }}" class="btn-outline">Reset</a>
+        </form>
+
     </div>
-</div>
 
-<div class="activity-section" style="margin-top:16px;">
-    <div class="activity-header">Recent Inventory Transactions</div>
-
-    <div class="activity-table-scrollable" style="max-height:min(55vh, 300px);">
+    <div class="panel-scroll expiry-scroll">
         <table class="activity-table">
             <thead>
                 <tr>
-                    <th>Date</th>
-                    <th>Reference</th>
-                    <th style="text-align:center;">Type</th>
+                    <th>Product</th>
+                    <th>Lot No.</th>
                     <th>Shelf</th>
                     <th>Renter</th>
-                    <th>Actioned By</th>
-                    <th>Remarks</th>
-                    <th style="text-align:center;">Action</th>
+                    <th>Expiry Date</th>
+                    <th class="align-right">Qty Remaining</th>
+                    <th class="align-right">Days Left</th>
+                    <th>Status</th>
                 </tr>
             </thead>
             <tbody>
-                @forelse($transactions as $t)
-                    @php
-                        $receiptItems = $t->items->map(function ($item) {
-                            return [
-                                'product_name' => $item->batch?->product?->product_name
-                                    ?? $item->product?->product_name
-                                    ?? 'Unknown Product',
-                                'lot_number' => $item->batch?->lot_number
-                                    ?? $item->lot_number
-                                    ?? '—',
-                                'mfg_date' => $item->batch?->manufacturing_date
-                                    ?? $item->manufacturing_date,
-                                'exp_date' => $item->batch?->expiration_date
-                                    ?? $item->expiration_date,
-                                'quantity' => (int) ($item->quantity ?? 0),
-                                'unit_cost' => is_null($item->unit_cost) ? null : (float) $item->unit_cost,
-                                'amount' => is_null($item->unit_cost)
-                                    ? null
-                                    : ((int) ($item->quantity ?? 0) * (float) $item->unit_cost),
-                            ];
-                        })->values();
-
-                        $receiptPayload = [
-                            'reference_no' => $t->reference_no ?? '—',
-                            'transaction_type' => $t->transaction_type ?? '—',
-                            'transaction_date' => $t->transaction_date
-                                ? \Carbon\Carbon::parse($t->transaction_date)->format('Y-m-d h:i A')
-                                : '—',
-                            'status' => $t->status ?? 'Approved',
-                            'shelf' => $t->shelf?->shelf_number ?? '—',
-                            'renter' => $t->renter?->renter_company_name ?? '—',
-                            'actioned_by' => $t->actionedBy?->name ?? '—',
-                            'remarks' => $t->remarks ?? '—',
-                            'items' => $receiptItems,
-                        ];
-                    @endphp
-
+                @forelse(($expiryBatches ?? []) as $batch)
                     <tr>
-                        <td>{{ \Carbon\Carbon::parse($t->transaction_date)->format('Y-m-d') }}</td>
-                        <td>{{ $t->reference_no ?? '—' }}</td>
-                        <td style="text-align:center;">
-                            <span class="badge">{{ $t->transaction_type }}</span>
+                        <td>
+                            <strong>{{ $batch['product_name'] }}</strong>
+                            <div class="muted-text">{{ $batch['category'] }}</div>
                         </td>
-                        <td>{{ $t->shelf?->shelf_number ?? '—' }}</td>
-                        <td>{{ $t->renter?->renter_company_name ?? '—' }}</td>
-                        <td>{{ $t->actionedBy?->name ?? '—' }}</td>
-                        <td>{{ $t->remarks ?? '—' }}</td>
-                        <td style="text-align:center;">
-                            <button
-                                type="button"
-                                class="btn-action-chip js-open-receipt"
-                                data-receipt='@json($receiptPayload)'>
-                                View
-                            </button>
+                        <td>{{ $batch['lot_number'] }}</td>
+                        <td>{{ $batch['shelf_number'] }}</td>
+                        <td>{{ $batch['renter_name'] }}</td>
+                        <td>{{ $batch['expiration_date'] ?? '—' }}</td>
+                        <td class="align-right">{{ $batch['quantity_remaining'] }}</td>
+                        <td class="align-right">
+                            {{ is_null($batch['days_left']) ? '—' : $batch['days_left'] }}
+                        </td>
+                        <td>
+                            <span class="badge">{{ $batch['expiry_status'] }}</span>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="empty-state">No transactions yet.</td>
+                        <td colspan="8" class="empty-state">No expiry records found.</td>
                     </tr>
                 @endforelse
             </tbody>
         </table>
     </div>
+
+</section>
+
+
+    {{-- RECENT TRANSACTIONS --}}
+    <section class="panel js-collapsible-panel" data-panel="transactions">
+        <div class="panel-header">
+            <div class="panel-title-wrap">
+                <h2 class="panel-title">Recent Inventory Transactions</h2>
+                <p class="panel-subtitle">Latest stock movement and receipt history.</p>
+            </div>
+
+            <div class="panel-actions">
+                <button type="button" class="panel-toggle js-panel-toggle">Collapse</button>
+            </div>
+        </div>
+
+        <div class="panel-scroll transactions-scroll">
+            <table class="activity-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Reference</th>
+                        <th class="align-center">Type</th>
+                        <th>Shelf</th>
+                        <th>Renter</th>
+                        <th>Actioned By</th>
+                        <th>Remarks</th>
+                        <th class="align-center">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($transactions as $t)
+                        @php
+                            $receiptItems = $t->items->map(function ($item) {
+                                return [
+                                    'product_name' => $item->batch?->product?->product_name
+                                        ?? $item->product?->product_name
+                                        ?? 'Unknown Product',
+                                    'lot_number' => $item->batch?->lot_number
+                                        ?? $item->lot_number
+                                        ?? '—',
+                                    'mfg_date' => $item->batch?->manufacturing_date
+                                        ?? $item->manufacturing_date,
+                                    'exp_date' => $item->batch?->expiration_date
+                                        ?? $item->expiration_date,
+                                    'quantity' => (int) ($item->quantity ?? 0),
+                                    'unit_cost' => is_null($item->unit_cost) ? null : (float) $item->unit_cost,
+                                    'amount' => is_null($item->unit_cost)
+                                        ? null
+                                        : ((int) ($item->quantity ?? 0) * (float) $item->unit_cost),
+                                ];
+                            })->values();
+
+                            $receiptPayload = [
+                                'reference_no' => $t->reference_no ?? '—',
+                                'transaction_type' => $t->transaction_type ?? '—',
+                                'transaction_date' => $t->transaction_date
+                                    ? \Carbon\Carbon::parse($t->transaction_date)->format('Y-m-d h:i A')
+                                    : '—',
+                                'status' => $t->status ?? 'Approved',
+                                'shelf' => $t->shelf?->shelf_number ?? '—',
+                                'renter' => $t->renter?->renter_company_name ?? '—',
+                                'actioned_by' => $t->actionedBy?->name ?? '—',
+                                'remarks' => $t->remarks ?? '—',
+                                'items' => $receiptItems,
+                            ];
+                        @endphp
+
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($t->transaction_date)->format('Y-m-d') }}</td>
+                            <td>{{ $t->reference_no ?? '—' }}</td>
+                            <td class="align-center">
+                                <span class="badge">{{ $t->transaction_type }}</span>
+                            </td>
+                            <td>{{ $t->shelf?->shelf_number ?? '—' }}</td>
+                            <td>{{ $t->renter?->renter_company_name ?? '—' }}</td>
+                            <td>{{ $t->actionedBy?->name ?? '—' }}</td>
+                            <td>{{ $t->remarks ?? '—' }}</td>
+                            <td class="align-center">
+                                <button
+                                    type="button"
+                                    class="btn-action-chip js-open-receipt"
+                                    data-receipt='@json($receiptPayload)'>
+                                    View
+                                </button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="8" class="empty-state">No transactions yet.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
 </div>
 
-{{-- MODAL --}}
-{{-- MODAL --}}
+{{-- MANAGE ITEMS MODAL --}}
 <div class="modal-backdrop" id="itemsModal" style="display:none;">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="itemsModalTitle"
-         style="max-width: 860px; width:min(94vw, 860px); padding:0; overflow:hidden;">
-
-        <div class="modal-head" style="padding:16px 20px; border-bottom:1px solid #efe5da;">
+    <div class="modal-card modal-card-lg" role="dialog" aria-modal="true" aria-labelledby="itemsModalTitle">
+        <div class="modal-head modal-head-clean">
             <div>
                 <div class="modal-title" id="itemsModalTitle">Manage Items</div>
                 <div class="modal-sub" id="itemsModalSub">—</div>
@@ -263,22 +741,22 @@
             <button class="modal-close" type="button" id="itemsModalClose">✕</button>
         </div>
 
-        <div class="modal-action-row" style="padding:14px 20px 0; display:flex; gap:10px; flex-wrap:wrap;">
+        <div class="modal-action-row modal-action-row-clean">
             <button class="btn-action-chip" type="button" id="btnStockIn">Stock In</button>
             <button class="btn-action-chip" type="button" id="btnStockOut">Stock Out</button>
             <button class="btn-action-chip" type="button" id="btnAdjust">Adjust</button>
         </div>
 
-        <div class="modal-body" style="padding:20px;">
-            <div class="activity-table-scrollable" style="border:1px solid #efe5da; border-radius:12px; overflow:hidden;">
+        <div class="modal-body modal-body-clean">
+            <div class="activity-table-scrollable modal-table-wrap">
                 <table class="activity-table">
                     <thead>
                         <tr>
                             <th>Product</th>
                             <th>Category</th>
-                            <th style="text-align:right;">Price</th>
-                            <th style="text-align:right;">On Hand</th>
-                            <th style="text-align:right;">Reorder</th>
+                            <th class="align-right">Price</th>
+                            <th class="align-right">On Hand</th>
+                            <th class="align-right">Reorder</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -291,19 +769,16 @@
             </div>
         </div>
 
-        <div class="modal-foot" style="padding:14px 20px; border-top:1px solid #efe5da; display:flex; justify-content:flex-end; gap:10px;">
+        <div class="modal-foot modal-foot-clean">
             <button class="btn-outline" type="button" id="itemsModalOk">Close</button>
         </div>
     </div>
 </div>
 
-
 {{-- RECEIPT MODAL --}}
 <div class="modal-backdrop" id="receiptModal" style="display:none;">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle"
-         style="max-width: 860px; width:min(94vw, 860px); padding:0; overflow:hidden;">
-
-        <div class="modal-head" style="padding:16px 20px; border-bottom:1px solid #efe5da;">
+    <div class="modal-card modal-card-lg" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle">
+        <div class="modal-head modal-head-clean">
             <div>
                 <div class="modal-title" id="receiptModalTitle">Transaction Receipt</div>
                 <div class="modal-sub">View inventory transaction details</div>
@@ -311,77 +786,73 @@
             <button class="modal-close" type="button" id="receiptModalClose">✕</button>
         </div>
 
-        <div class="modal-body" style="padding:20px;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:18px;">
+        <div class="modal-body modal-body-clean">
+            <div class="receipt-head">
                 <div>
-                    <div style="font-size:20px; font-weight:700; color:#3b2f2f;">Receipt</div>
-                    <div style="font-size:13px; color:#7b6d63; margin-top:2px;">
-                        Inventory transaction summary
-                    </div>
+                    <div class="receipt-title">Receipt</div>
+                    <div class="receipt-subtitle">Inventory transaction summary</div>
                 </div>
 
-                <div style="text-align:right;">
-                    <div style="font-size:12px; color:#8b7b70;">Reference No.</div>
-                    <div id="r_reference" style="font-size:20px; font-weight:700; color:#3b2f2f;">—</div>
+                <div class="align-right">
+                    <div class="receipt-ref-label">Reference No.</div>
+                    <div id="r_reference" class="receipt-ref-value">—</div>
                 </div>
             </div>
 
-            <div style="border:1px solid #efe5da; border-radius:14px; overflow:hidden; background:#fffdf9;">
-                <div style="padding:16px 18px;">
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px 24px;">
+            <div class="receipt-card">
+                <div class="receipt-card-top">
+                    <div class="receipt-grid">
                         <div>
-                            <div style="font-size:12px; color:#8b7b70;">Transaction Type</div>
-                            <div id="r_type" style="font-size:15px; font-weight:600; color:#2f2a26;">—</div>
+                            <div class="receipt-field-label">Transaction Type</div>
+                            <div id="r_type" class="receipt-field-value">—</div>
                         </div>
 
                         <div>
-                            <div style="font-size:12px; color:#8b7b70;">Date</div>
-                            <div id="r_date" style="font-size:15px; font-weight:600; color:#2f2a26;">—</div>
+                            <div class="receipt-field-label">Date</div>
+                            <div id="r_date" class="receipt-field-value">—</div>
                         </div>
 
                         <div>
-                            <div style="font-size:12px; color:#8b7b70;">Status</div>
-                            <div id="r_status" style="font-size:15px; font-weight:600; color:#2f2a26;">—</div>
+                            <div class="receipt-field-label">Status</div>
+                            <div id="r_status" class="receipt-field-value">—</div>
                         </div>
 
                         <div>
-                            <div style="font-size:12px; color:#8b7b70;">Actioned By</div>
-                            <div id="r_actioned_by" style="font-size:15px; font-weight:600; color:#2f2a26;">—</div>
+                            <div class="receipt-field-label">Actioned By</div>
+                            <div id="r_actioned_by" class="receipt-field-value">—</div>
                         </div>
 
                         <div>
-                            <div style="font-size:12px; color:#8b7b70;">Shelf</div>
-                            <div id="r_shelf" style="font-size:15px; font-weight:600; color:#2f2a26;">—</div>
+                            <div class="receipt-field-label">Shelf</div>
+                            <div id="r_shelf" class="receipt-field-value">—</div>
                         </div>
 
                         <div>
-                            <div style="font-size:12px; color:#8b7b70;">Renter</div>
-                            <div id="r_renter" style="font-size:15px; font-weight:600; color:#2f2a26;">—</div>
+                            <div class="receipt-field-label">Renter</div>
+                            <div id="r_renter" class="receipt-field-value">—</div>
                         </div>
                     </div>
 
-                    <div style="margin-top:14px;">
-                        <div style="font-size:12px; color:#8b7b70;">Remarks</div>
-                        <div id="r_remarks" style="font-size:15px; font-weight:600; color:#2f2a26;">—</div>
+                    <div class="receipt-remarks">
+                        <div class="receipt-field-label">Remarks</div>
+                        <div id="r_remarks" class="receipt-field-value">—</div>
                     </div>
                 </div>
 
-                <div style="border-top:1px solid #efe5da; padding:16px 18px;">
-                    <div style="font-size:14px; font-weight:700; color:#3b2f2f; margin-bottom:10px;">
-                        Included Items
-                    </div>
+                <div class="receipt-items-section">
+                    <div class="receipt-items-title">Included Items</div>
 
-                    <div style="overflow-x:auto;">
-                        <table class="activity-table" style="min-width:700px;">
+                    <div class="receipt-items-scroll">
+                        <table class="activity-table receipt-items-table">
                             <thead>
                                 <tr>
                                     <th>Product</th>
                                     <th>Lot No.</th>
                                     <th>MFG</th>
                                     <th>EXP</th>
-                                    <th style="text-align:right;">Qty</th>
-                                    <th style="text-align:right;">Unit Cost</th>
-                                    <th style="text-align:right;">Amount</th>
+                                    <th class="align-right">Qty</th>
+                                    <th class="align-right">Unit Cost</th>
+                                    <th class="align-right">Amount</th>
                                 </tr>
                             </thead>
                             <tbody id="receiptItemsTbody">
@@ -392,8 +863,8 @@
                         </table>
                     </div>
 
-                    <div style="display:flex; justify-content:flex-end; margin-top:12px;">
-                        <div style="min-width:240px; display:flex; justify-content:space-between; gap:16px; font-size:18px; font-weight:700; color:#2f2a26;">
+                    <div class="receipt-total-row">
+                        <div class="receipt-total-box">
                             <span>Grand Total</span>
                             <span id="receiptGrandTotal">—</span>
                         </div>
@@ -402,11 +873,12 @@
             </div>
         </div>
 
-        <div class="modal-foot" style="padding:14px 20px; border-top:1px solid #efe5da; display:flex; justify-content:flex-end; gap:10px;">
+        <div class="modal-foot modal-foot-clean">
             <button class="btn-outline" type="button" id="receiptPrintBtn">Print</button>
             <button class="btn-action-chip" type="button" id="receiptModalOk">Close</button>
         </div>
     </div>
+    
 </div>
 
 <script>
@@ -504,9 +976,9 @@
                     <tr>
                         <td><strong>${escapeHtml(i.name)}</strong></td>
                         <td>${escapeHtml(i.category)}</td>
-                        <td style="text-align:right;">${peso(i.price)}</td>
-                        <td style="text-align:right;">${Number(i.on_hand || 0)}</td>
-                        <td style="text-align:right;">${Number(i.reorder || 0)}</td>
+                        <td class="align-right">${peso(i.price)}</td>
+                        <td class="align-right">${Number(i.on_hand || 0)}</td>
+                        <td class="align-right">${Number(i.reorder || 0)}</td>
                         <td>${escapeHtml(i.status)}</td>
                     </tr>
                 `).join('');
@@ -551,9 +1023,9 @@
                             <td>${escapeHtml(item.lot_number || '—')}</td>
                             <td>${escapeHtml(item.mfg_date || '—')}</td>
                             <td>${escapeHtml(item.exp_date || '—')}</td>
-                            <td style="text-align:right;">${Number(item.quantity || 0)}</td>
-                            <td style="text-align:right;">${unitCost === null || unitCost === undefined ? '—' : peso(unitCost)}</td>
-                            <td style="text-align:right;">${amount === null || amount === undefined ? '—' : peso(amount)}</td>
+                            <td class="align-right">${Number(item.quantity || 0)}</td>
+                            <td class="align-right">${unitCost === null || unitCost === undefined ? '—' : peso(unitCost)}</td>
+                            <td class="align-right">${amount === null || amount === undefined ? '—' : peso(amount)}</td>
                         </tr>
                     `;
                 }).join('');
@@ -599,6 +1071,16 @@
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
         if (e.key === 'Escape' && receiptModal.style.display !== 'none') closeReceiptModal();
+    });
+
+    document.querySelectorAll('.js-collapsible-panel').forEach(panel => {
+        const toggle = panel.querySelector('.js-panel-toggle');
+        if (!toggle) return;
+
+        toggle.addEventListener('click', () => {
+            panel.classList.toggle('is-collapsed');
+            toggle.textContent = panel.classList.contains('is-collapsed') ? 'Expand' : 'Collapse';
+        });
     });
 })();
 </script>

@@ -4,7 +4,7 @@
 @section('content')
 <div class="header-section">
     <h1>Pending Inventory Approvals</h1>
-    <p>Review and approve staff-submitted inventory stock-in requests.</p>
+    <p>Review and approve staff-submitted inventory requests.</p>
 </div>
 
 @if(session('success'))
@@ -62,7 +62,7 @@
 </div>
 
 <div class="activity-section" style="margin-top:16px;">
-    <div class="activity-header">Pending Stock-In Requests</div>
+    <div class="activity-header">Pending Inventory Requests</div>
 
     <div class="scroll-box" style="padding:12px;">
         <div style="display:flex; flex-direction:column; gap:12px;">
@@ -70,13 +70,14 @@
                 @php
                     $itemsPayload = $trx->items->map(function ($item) {
                         return [
-                            'product_name' => $item->product?->product_name ?? 'Unknown Product',
-                            'category' => $item->product?->category ?? '—',
+                            'product_name' => $item->product?->product_name ?? $item->batch?->product?->product_name ?? 'Unknown Product',
+                            'category' => $item->product?->category ?? $item->batch?->product?->category ?? '—',
                             'quantity' => (int) $item->quantity,
                             'unit_cost' => $item->unit_cost,
                             'lot_number' => $item->lot_number,
                             'manufacturing_date' => $item->manufacturing_date,
                             'expiration_date' => $item->expiration_date,
+                            'adjustment_mode' => $item->adjustment_mode ?? null,
                         ];
                     })->values();
                 @endphp
@@ -86,7 +87,8 @@
                         <div style="min-width:280px;">
                             <div class="shelf-title">
                                 Ref <strong>{{ $trx->reference_no ?? '—' }}</strong>
-                                <span class="badge">{{ strtoupper($trx->status) }}</span>
+                                <span class="badge">{{ strtoupper($trx->transaction_type ?? '—') }}</span>
+                                <span class="badge">{{ strtoupper($trx->status ?? '—') }}</span>
                             </div>
 
                             <div class="shelf-sub">
@@ -96,7 +98,7 @@
 
                             <div class="shelf-sub" style="margin-top:4px;">
                                 Submitted by: {{ $trx->actionedBy?->name ?? '—' }}
-                                • {{ \Carbon\Carbon::parse($trx->transaction_date)->format('Y-m-d') }}
+                                • {{ $trx->transaction_date ? \Carbon\Carbon::parse($trx->transaction_date)->format('Y-m-d') : '—' }}
                             </div>
 
                             @if($trx->remarks)
@@ -120,6 +122,7 @@
                             <button type="button"
                                     class="btn-action-chip js-open-items"
                                     data-reference="{{ $trx->reference_no ?? '—' }}"
+                                    data-transaction-type="{{ $trx->transaction_type ?? '—' }}"
                                     data-status="{{ $trx->status ?? '—' }}"
                                     data-shelf="{{ $trx->shelf?->shelf_number ?? '—' }}"
                                     data-renter="{{ $trx->renter?->renter_company_name ?? '—' }}"
@@ -177,7 +180,6 @@
             </select>
 
             <button type="submit" class="btn-outline">Filter</button>
-
             <a href="{{ route('admin.inventory.pending') }}" class="btn-outline">Reset</a>
         </form>
     </div>
@@ -188,13 +190,14 @@
                 @php
                     $historyItemsPayload = $trx->items->map(function ($item) {
                         return [
-                            'product_name' => $item->product?->product_name ?? 'Unknown Product',
-                            'category' => $item->product?->category ?? '—',
+                            'product_name' => $item->product?->product_name ?? $item->batch?->product?->product_name ?? 'Unknown Product',
+                            'category' => $item->product?->category ?? $item->batch?->product?->category ?? '—',
                             'quantity' => (int) $item->quantity,
                             'unit_cost' => $item->unit_cost,
                             'lot_number' => $item->lot_number,
                             'manufacturing_date' => $item->manufacturing_date,
                             'expiration_date' => $item->expiration_date,
+                            'adjustment_mode' => $item->adjustment_mode ?? null,
                         ];
                     })->values();
                 @endphp
@@ -204,7 +207,8 @@
                         <div style="min-width:280px;">
                             <div class="shelf-title">
                                 Ref <strong>{{ $trx->reference_no ?? '—' }}</strong>
-                                <span class="badge">{{ strtoupper($trx->status) }}</span>
+                                <span class="badge">{{ strtoupper($trx->transaction_type ?? '—') }}</span>
+                                <span class="badge">{{ strtoupper($trx->status ?? '—') }}</span>
                             </div>
 
                             <div class="shelf-sub">
@@ -248,6 +252,7 @@
                             <button type="button"
                                     class="btn-action-chip js-open-items"
                                     data-reference="{{ $trx->reference_no ?? '—' }}"
+                                    data-transaction-type="{{ $trx->transaction_type ?? '—' }}"
                                     data-status="{{ $trx->status ?? '—' }}"
                                     data-shelf="{{ $trx->shelf?->shelf_number ?? '—' }}"
                                     data-renter="{{ $trx->renter?->renter_company_name ?? '—' }}"
@@ -274,7 +279,7 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="itemsModalTitle">
         <div class="modal-head">
             <div>
-                <div class="modal-title" id="itemsModalTitle">Request Items</div>
+                <div class="modal-title" id="itemsModalTitle">Transaction Details</div>
                 <div class="modal-sub" id="itemsModalSub">—</div>
             </div>
             <button class="modal-close" type="button" id="itemsModalClose">✕</button>
@@ -294,10 +299,11 @@
                             <th>Lot #</th>
                             <th>Mfg</th>
                             <th>Expiry</th>
+                            <th>Mode</th>
                         </tr>
                     </thead>
                     <tbody id="itemsModalTbody">
-                        <tr><td colspan="7" class="empty-state">No items.</td></tr>
+                        <tr><td colspan="8" class="empty-state">No items.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -390,6 +396,7 @@
     document.querySelectorAll('.js-open-items').forEach(btn => {
         btn.addEventListener('click', () => {
             const reference = btn.getAttribute('data-reference');
+            const type = btn.getAttribute('data-transaction-type');
             const status = btn.getAttribute('data-status');
             const shelf = btn.getAttribute('data-shelf');
             const renter = btn.getAttribute('data-renter');
@@ -400,7 +407,7 @@
             const reviewRemarks = btn.getAttribute('data-review-remarks');
             const items = JSON.parse(btn.getAttribute('data-items') || '[]');
 
-            itemsModalSub.textContent = `Ref ${reference} • ${status} • Shelf ${shelf} • ${renter}`;
+            itemsModalSub.textContent = `Ref ${reference} • ${type} • ${status} • Shelf ${shelf} • ${renter}`;
             itemsModalMeta.innerHTML = `
                 <strong>Submitted by:</strong> ${escapeHtml(submittedBy)}
                 ${reviewedBy && reviewedBy !== '—' ? `<br><strong>Reviewed by:</strong> ${escapeHtml(reviewedBy)}` : ''}
@@ -410,7 +417,7 @@
             `;
 
             if (!items.length) {
-                itemsModalTbody.innerHTML = `<tr><td colspan="7" class="empty-state">No items.</td></tr>`;
+                itemsModalTbody.innerHTML = `<tr><td colspan="8" class="empty-state">No items.</td></tr>`;
             } else {
                 itemsModalTbody.innerHTML = items.map(i => `
                     <tr>
@@ -421,6 +428,7 @@
                         <td>${escapeHtml(i.lot_number || '—')}</td>
                         <td>${escapeHtml(i.manufacturing_date || '—')}</td>
                         <td>${escapeHtml(i.expiration_date || '—')}</td>
+                        <td>${escapeHtml(i.adjustment_mode || '—')}</td>
                     </tr>
                 `).join('');
             }

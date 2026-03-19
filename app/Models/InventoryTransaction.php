@@ -25,6 +25,7 @@ protected $fillable = [
     'approved_by',
     'approved_at',
     'review_remarks',
+    'adjustment_mode',
 ];
 
     public function renter()

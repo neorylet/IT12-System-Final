@@ -8,7 +8,7 @@
 </div>
 
 <div class="toolbar">
-    <form method="GET" action="{{ route('admin.logs.index') }}" class="search-form">
+    <form method="GET" action="{{ route('admin.logs.index') }}" class="search-form audit-filter-form">
         <input
             class="input-field"
             type="text"
@@ -17,7 +17,7 @@
             placeholder="Search user, module, action, or description..."
         >
 
-        <select class="input-field" name="user" style="min-width: 180px;">
+        <select class="input-field audit-filter-select" name="user">
             <option value="">All Users</option>
             @foreach($users as $u)
                 <option value="{{ $u->id }}" {{ (string)($user ?? '') === (string)$u->id ? 'selected' : '' }}>
@@ -26,7 +26,7 @@
             @endforeach
         </select>
 
-        <select class="input-field" name="module" style="min-width: 180px;">
+        <select class="input-field audit-filter-select" name="module">
             <option value="">All Modules</option>
             @foreach($modules as $m)
                 <option value="{{ $m }}" {{ ($module ?? '') === $m ? 'selected' : '' }}>
@@ -35,7 +35,7 @@
             @endforeach
         </select>
 
-        <select class="input-field" name="action" style="min-width: 180px;">
+        <select class="input-field audit-filter-select" name="action">
             <option value="">All Actions</option>
             @foreach($actions as $a)
                 <option value="{{ $a }}" {{ ($action ?? '') === $a ? 'selected' : '' }}>
@@ -45,18 +45,17 @@
         </select>
 
         <input
-            class="input-field"
+            class="input-field audit-filter-date"
             type="date"
             name="date"
             value="{{ $date ?? '' }}"
-            style="min-width: 180px;"
         >
 
         <button class="btn-outline" type="submit">Filter</button>
     </form>
 </div>
 
-<div class="cards-grid" style="margin-top:12px;">
+<div class="cards-grid audit-cards-grid">
     <div class="stat-card">
         <div class="stat-label">Total Logs</div>
         <div class="stat-value">{{ number_format($totalLogs) }}</div>
@@ -82,11 +81,11 @@
     </div>
 </div>
 
-<div class="activity-section" style="margin-top:16px;">
+<div class="activity-section audit-logs-section">
     <div class="activity-header">Recent Audit Records</div>
 
     <div class="activity-table-scrollable">
-        <table class="activity-table">
+        <table class="activity-table audit-logs-table">
             <thead>
                 <tr>
                     <th>Date & Time</th>
@@ -96,7 +95,7 @@
                     <th>Module</th>
                     <th>Record</th>
                     <th>Description</th>
-                    <th style="text-align:center;">View</th>
+                    <th class="text-center">View</th>
                 </tr>
             </thead>
             <tbody>
@@ -113,7 +112,7 @@
                         <td>{{ $log->module }}</td>
                         <td>{{ $log->reference_no ?? '-' }}</td>
                         <td>{{ $log->description }}</td>
-                        <td style="text-align:center;">
+                        <td class="text-center">
                             <button
                                 type="button"
                                 class="btn-mini-outline"
@@ -142,21 +141,60 @@
     </div>
 </div>
 
-<div style="margin: 14px 28px 28px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-    <div style="font-size:13px; color:#6b7280;">
+<div class="pagination-wrap">
+    <div class="pagination-meta">
         Showing {{ $logs->firstItem() ?? 0 }} to {{ $logs->lastItem() ?? 0 }} of {{ $logs->total() }} logs
     </div>
 
-    <div>
-        {{ $logs->links() }}
-    </div>
+    @if ($logs->hasPages())
+        <div class="pagination-bar">
+            @if ($logs->onFirstPage())
+                <span class="pagination-btn pagination-btn-disabled">Previous</span>
+            @else
+                <a href="{{ $logs->appends(request()->query())->previousPageUrl() }}" class="pagination-btn">Previous</a>
+            @endif
+
+            @php
+                $current = $logs->currentPage();
+                $last = $logs->lastPage();
+                $start = max(1, $current - 2);
+                $end = min($last, $current + 2);
+            @endphp
+
+            @if ($start > 1)
+                <a href="{{ $logs->appends(request()->query())->url(1) }}" class="pagination-btn">1</a>
+                @if ($start > 2)
+                    <span class="pagination-ellipsis">…</span>
+                @endif
+            @endif
+
+            @for ($page = $start; $page <= $end; $page++)
+                @if ($page == $current)
+                    <span class="pagination-btn pagination-btn-active">{{ $page }}</span>
+                @else
+                    <a href="{{ $logs->appends(request()->query())->url($page) }}" class="pagination-btn">{{ $page }}</a>
+                @endif
+            @endfor
+
+            @if ($end < $last)
+                @if ($end < $last - 1)
+                    <span class="pagination-ellipsis">…</span>
+                @endif
+                <a href="{{ $logs->appends(request()->query())->url($last) }}" class="pagination-btn">{{ $last }}</a>
+            @endif
+
+            @if ($logs->hasMorePages())
+                <a href="{{ $logs->appends(request()->query())->nextPageUrl() }}" class="pagination-btn">Next</a>
+            @else
+                <span class="pagination-btn pagination-btn-disabled">Next</span>
+            @endif
+        </div>
+    @endif
 </div>
 
 <div class="modal-backdrop" id="auditLogModal" style="display:none;">
-    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="auditLogModalTitle"
-         style="max-width: 860px; width:min(94vw, 860px); padding:0; overflow:hidden;">
-
-        <div class="modal-head" style="padding:16px 20px; border-bottom:1px solid #efe5da;">
+    <div class="modal-card audit-log-modal" role="dialog" aria-modal="true" aria-labelledby="auditLogModalTitle">
+        <div class="modal-head audit-log-modal-head">
             <div>
                 <div class="modal-title" id="auditLogModalTitle">Audit Log Details</div>
                 <div class="modal-sub">View full activity information</div>
@@ -164,12 +202,12 @@
             <button class="modal-close" type="button" id="auditLogModalClose">✕</button>
         </div>
 
-        <div class="modal-body" style="padding:20px;">
-            <div class="activity-table-scrollable" style="border:1px solid #efe5da; border-radius:12px; overflow:hidden;">
-                <table class="activity-table">
+        <div class="modal-body audit-log-modal-body">
+            <div class="audit-log-detail-wrap">
+                <table class="activity-table audit-log-detail-table">
                     <tbody>
                         <tr>
-                            <th style="width:220px;">Date & Time</th>
+                            <th>Date & Time</th>
                             <td id="modalLogDate">—</td>
                         </tr>
                         <tr>
@@ -205,7 +243,7 @@
             </div>
         </div>
 
-        <div class="modal-foot" style="padding:14px 20px; border-top:1px solid #efe5da; display:flex; justify-content:flex-end; gap:10px;">
+        <div class="modal-foot audit-log-modal-foot">
             <button class="btn-outline" type="button" id="auditLogModalOk">Close</button>
         </div>
     </div>

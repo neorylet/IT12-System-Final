@@ -18,6 +18,9 @@ use App\Http\Controllers\Admin\Inventory\ApprovalController;
 use App\Http\Controllers\Staff\Inventory\InventoryController as StaffInventoryController;
 use App\Http\Controllers\Staff\Inventory\StockInController as StaffStockInController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Staff\Inventory\StockOutController as StaffStockOutController;
+use App\Http\Controllers\Staff\Inventory\AdjustmentController as StaffAdjustmentController;
+use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
 
 
 /*
@@ -106,16 +109,19 @@ Route::middleware(['auth', 'role:Staff'])
     ->name('staff.')
     ->group(function () {
 
-        Route::get('/dashboard', function () {
-            return view('staff.dashboard');
-        })->name('dashboard');
+        Route::get('/dashboard', [StaffDashboardController::class, 'index'])->name('dashboard');
 
         Route::get('/inventory', [StaffInventoryController::class, 'index'])->name('inventory.index');
 
-        Route::get('inventory/stock-in', [StaffStockInController::class, 'create'])->name('inventory.stockin.create');
-        Route::post('inventory/stock-in', [StaffStockInController::class, 'store'])->name('inventory.stockin.store');
-    });
+        Route::get('/inventory/stock-in', [StaffStockInController::class, 'create'])->name('inventory.stockin.create');
+        Route::post('/inventory/stock-in', [StaffStockInController::class, 'store'])->name('inventory.stockin.store');
 
+        Route::get('/inventory/stock-out', [StaffStockOutController::class, 'create'])->name('inventory.stockout.create');
+        Route::post('/inventory/stock-out', [StaffStockOutController::class, 'store'])->name('inventory.stockout.store');
+
+        Route::get('/inventory/adjustment', [StaffAdjustmentController::class, 'create'])->name('inventory.adjust.create');
+        Route::post('/inventory/adjustment', [StaffAdjustmentController::class, 'store'])->name('inventory.adjust.store');
+    });
 /*
 |--------------------------------------------------------------------------
 | PROFILE ROUTES
