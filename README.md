@@ -1,122 +1,117 @@
-Added
+<p align="center">
+  <h1 align="center">Changelog</h1>
+  <p align="center">
+    Audit Logging and Inventory Enhancements
+  </p>
+</p>
 
-Implemented structured audit logging with details (JSON) support
+---
 
-Added Approval History module for viewing approved and rejected transactions
+## Latest Update
 
-Added filters (date, shelf) and scrollable activity section in approval history
+### Added
 
-Added modal view for detailed transaction item breakdown
+- Structured audit logging with `details (JSON)` support  
+- Approval History module for approved and rejected transactions  
+- Filters for date and shelf  
+- Scrollable activity section for better navigation  
+- Modal view for transaction item breakdown  
 
-Improved
-Audit Log System
+---
 
-Standardized logging across modules:
+### Improvements
 
-action, module, description, reference_id, reference_no
+#### Audit Log System
 
-Enabled support for:
+- Standardized log structure across all modules:
+  - `action`, `module`, `description`, `reference_id`, `reference_no`
+- Added support for:
+  - Item-level transaction details  
+  - Before and after comparisons  
 
-item-level transaction details
+---
 
-before/after comparisons for updates
+#### Inventory Module
 
-Inventory Module
+- Enhanced logging for:
+  - **Stock In** — product, quantity, shelf, renter  
+  - **Stock Out** — deductions with batch tracking  
+  - **Adjustment** — mode-based quantity updates  
 
-Enhanced logging for:
+---
 
-Stock In (products, quantities, shelf, renter)
+#### Approval System
 
-Stock Out (deductions, batch-based removal, product breakdown)
+- Logs now include transaction references and details  
+- Rejection logs include review remarks  
+- Full tracking of approval and rejection actions  
 
-Adjustment (mode, quantity changes, resulting stock)
+---
 
-Approval System
+#### Product Module
 
-Approval logs now include transaction references and details
+- Added logging for Create, Update, and Delete  
+- Logs now include:
+  - Product details  
+  - Shelf and renter context  
+- Update logs store before and after values  
 
-Rejection logs now include review remarks
+---
 
-Added full tracking for approval and rejection actions
+#### Shelf Module
 
-Product Module
+- Added logging for Create, Update, and Delete  
+- Tracks:
+  - Shelf number  
+  - Monthly rent  
+  - Renter assignment  
+  - Contract dates  
+  - Shelf status  
+- Update logs include before and after comparison  
 
-Added logging for Create, Update, and Delete
+---
 
-Logs now include:
+#### Shelf Assignment
 
-product details
+- Added logs for:
+  - Assigning renter to shelf  
+  - Unassigning renter  
+- Includes shelf number and renter company  
 
-shelf and renter information
+---
 
-Update logs now store before and after states
+#### Renter Module
 
-Shelf Module
+- Added logging for Create, Update, and Delete  
+- Logs capture:
+  - Personal and company details  
+  - Contact information  
+  - Contract duration  
+  - Status  
+- Update logs include before and after snapshots  
 
-Added logging for Create, Update, and Delete
+---
 
-Tracks:
+### UI Enhancements
 
-shelf number
+- Improved audit logs table and modal  
+- Displays:
+  - User  
+  - Role  
+  - Action  
+  - Module  
+  - Reference number  
+  - Description  
+- Prepared for structured detail rendering  
 
-monthly rent
+---
 
-renter assignment
+### Notes
 
-contract dates
+The system now provides a complete audit trail across:
 
-shelf status
-
-Update logs include before and after comparison
-
-Shelf Assignment
-
-Added logs for:
-
-assigning renter to shelf
-
-unassigning renter
-
-Includes shelf number and renter company
-
-Renter Module
-
-Added logging for Create, Update, and Delete
-
-Logs now capture:
-
-personal and company details
-
-contact information
-
-contract duration
-
-status
-
-Update logs include before and after snapshots
-
-UI Enhancements
-
-Improved audit logs table and modal display
-
-Displays:
-
-user, role, action, module
-
-reference number and description
-
-Prepared UI for rendering structured log details
-
-Notes
-
-System now supports full audit trail across major modules:
-
-Inventory
-
-Approvals
-
-Products
-
-Shelves
-
-Renters
+- Inventory  
+- Approvals  
+- Products  
+- Shelves  
+- Renters  
