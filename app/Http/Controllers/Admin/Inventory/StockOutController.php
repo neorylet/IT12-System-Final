@@ -9,6 +9,7 @@ use App\Models\InventoryTransactionItem;
 use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\Shelf;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -30,7 +31,6 @@ class StockOutController extends Controller
                 ->first();
         }
 
-        // Only show products (with inventory) that belong to selected shelf (if provided)
         $products = Product::with(['inventory', 'shelf', 'renter'])
             ->when($selectedShelfId, fn($q) => $q->where('shelf_id', $selectedShelfId))
             ->orderBy('product_name')
@@ -49,18 +49,18 @@ class StockOutController extends Controller
         $validated = $request->validate([
             'shelf_id' => ['required', 'exists:shelves,shelf_id'],
             'remarks'  => ['nullable', 'string', 'max:500'],
-
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,product_id'],
             'items.*.quantity'   => ['required', 'integer', 'min:1'],
         ]);
 
         return DB::transaction(function () use ($validated) {
-
             $shelf = Shelf::with('renter')->where('shelf_id', $validated['shelf_id'])->firstOrFail();
 
             if (!$shelf->renter_id) {
-                return back()->withErrors(['shelf_id' => 'This shelf has no assigned renter. Assign a renter first.'])->withInput();
+                return back()->withErrors([
+                    'shelf_id' => 'This shelf has no assigned renter. Assign a renter first.'
+                ])->withInput();
             }
 
             $reference = 'OUT-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
@@ -77,19 +77,22 @@ class StockOutController extends Controller
                 'approved_at'      => now(),
             ]);
 
+            $logItems = [];
+            $batchBreakdown = [];
+
             foreach ($validated['items'] as $row) {
                 $product = Product::with('inventory')
                     ->where('product_id', $row['product_id'])
                     ->firstOrFail();
 
-                // must match shelf & renter
-                if ((int)$product->shelf_id !== (int)$shelf->shelf_id || (int)$product->renter_id !== (int)$shelf->renter_id) {
+                if ((int) $product->shelf_id !== (int) $shelf->shelf_id || (int) $product->renter_id !== (int) $shelf->renter_id) {
                     return back()->withErrors([
                         'items' => "Product '{$product->product_name}' does not belong to the selected shelf/renter."
                     ])->withInput();
                 }
 
-                $qtyToRemove = (int) $row['quantity'];
+                $requestedQty = (int) $row['quantity'];
+                $qtyToRemove = $requestedQty;
                 $onHand = (int) optional($product->inventory)->quantity_on_hand;
 
                 if ($onHand < $qtyToRemove) {
@@ -98,7 +101,6 @@ class StockOutController extends Controller
                     ])->withInput();
                 }
 
-                // FIFO consume batches (oldest first)
                 $batches = ProductBatch::where('product_id', $product->product_id)
                     ->where('quantity_remaining', '>', 0)
                     ->orderBy('expiration_date')
@@ -108,40 +110,86 @@ class StockOutController extends Controller
                     ->get();
 
                 foreach ($batches as $batch) {
-                    if ($qtyToRemove <= 0) break;
+                    if ($qtyToRemove <= 0) {
+                        break;
+                    }
 
-                    $take = min($qtyToRemove, (int)$batch->quantity_remaining);
+                    $take = min($qtyToRemove, (int) $batch->quantity_remaining);
 
-                    $batch->quantity_remaining = (int)$batch->quantity_remaining - $take;
+                    $batch->quantity_remaining = (int) $batch->quantity_remaining - $take;
                     $batch->save();
 
                     InventoryTransactionItem::create([
-                        'transaction_id' => $trx->transaction_id,
-                        'batch_id'       => $batch->batch_id,
-                        'quantity'       => $take,
-                        'unit_cost'      => null,
+                        'transaction_id'      => $trx->transaction_id,
+                        'product_id'          => $product->product_id,
+                        'batch_id'            => $batch->batch_id,
+                        'lot_number'          => $batch->lot_number,
+                        'manufacturing_date'  => $batch->manufacturing_date,
+                        'expiration_date'     => $batch->expiration_date,
+                        'quantity'            => $take,
+                        'unit_cost'           => null,
                     ]);
+
+                    $batchBreakdown[] = [
+                        'product_id' => $product->product_id,
+                        'product_name' => $product->product_name,
+                        'batch_id' => $batch->batch_id,
+                        'lot_number' => $batch->lot_number,
+                        'expiration_date' => $batch->expiration_date,
+                        'quantity_taken' => $take,
+                    ];
 
                     $qtyToRemove -= $take;
                 }
 
-                // If no batches exist (or insufficient), still protect integrity
                 if ($qtyToRemove > 0) {
                     return back()->withErrors([
                         'items' => "Batches are insufficient for '{$product->product_name}'. Please check product_batch records."
                     ])->withInput();
                 }
 
-                // Update inventory
+                $logItems[] = [
+                    'product_id' => $product->product_id,
+                    'product_name' => $product->product_name,
+                    'quantity' => $requestedQty,
+                    'quantity_before' => $onHand,
+                    'quantity_after' => $onHand - $requestedQty,
+                ];
+
                 $inv = Inventory::firstOrCreate(
                     ['product_id' => $product->product_id],
                     ['quantity_on_hand' => 0, 'reorder_level' => 5]
                 );
 
-                $inv->quantity_on_hand = (int)$inv->quantity_on_hand - (int)$row['quantity'];
+                $inv->quantity_on_hand = (int) $inv->quantity_on_hand - $requestedQty;
                 $inv->last_updated = now();
                 $inv->save();
             }
+
+            $totalUnits = collect($logItems)->sum('quantity');
+
+            AuditLogService::log(
+                'Stock Out',
+                'Inventory',
+                "Stock Out {$reference} for Shelf {$shelf->shelf_number}" .
+                ($shelf->renter?->renter_company_name ? " ({$shelf->renter->renter_company_name})" : '') .
+                " with " . count($logItems) . " item(s), total {$totalUnits} unit(s).",
+                $trx->transaction_id,
+                $reference,
+                [
+                    'transaction_type' => 'OUT',
+                    'transaction_date' => now()->format('Y-m-d H:i:s'),
+                    'shelf_id' => $shelf->shelf_id,
+                    'shelf_number' => $shelf->shelf_number,
+                    'renter_id' => $shelf->renter_id,
+                    'renter_name' => $shelf->renter->renter_company_name ?? null,
+                    'remarks' => $validated['remarks'] ?? null,
+                    'total_items' => count($logItems),
+                    'total_units' => $totalUnits,
+                    'items' => $logItems,
+                    'batch_breakdown' => $batchBreakdown,
+                ]
+            );
 
             return redirect()
                 ->route('admin.inventory.index')

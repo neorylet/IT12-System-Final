@@ -9,6 +9,7 @@ use App\Models\InventoryTransactionItem;
 use App\Models\Product;
 use App\Models\ProductBatch;
 use App\Models\Shelf;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -48,7 +49,6 @@ class AdjustmentController extends Controller
         $validated = $request->validate([
             'shelf_id' => ['required', 'exists:shelves,shelf_id'],
             'remarks'  => ['nullable', 'string', 'max:500'],
-
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,product_id'],
             'items.*.mode'       => ['required', 'in:set,increase,decrease'],
@@ -56,17 +56,18 @@ class AdjustmentController extends Controller
         ]);
 
         return DB::transaction(function () use ($validated) {
-
             $shelf = Shelf::with('renter')->where('shelf_id', $validated['shelf_id'])->firstOrFail();
 
             if (!$shelf->renter_id) {
-                return back()->withErrors(['shelf_id' => 'This shelf has no assigned renter. Assign a renter first.'])->withInput();
+                return back()->withErrors([
+                    'shelf_id' => 'This shelf has no assigned renter. Assign a renter first.'
+                ])->withInput();
             }
 
             $reference = 'ADJ-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
 
             $trx = InventoryTransaction::create([
-                'transaction_type' => 'ADJ',
+                'transaction_type' => 'ADJUSTMENT',
                 'renter_id'        => $shelf->renter_id,
                 'shelf_id'         => $shelf->shelf_id,
                 'transaction_date' => now(),
@@ -77,12 +78,15 @@ class AdjustmentController extends Controller
                 'approved_at'      => now(),
             ]);
 
+            $logItems = [];
+            $batchBreakdown = [];
+
             foreach ($validated['items'] as $row) {
                 $product = Product::with('inventory')
                     ->where('product_id', $row['product_id'])
                     ->firstOrFail();
 
-                if ((int)$product->shelf_id !== (int)$shelf->shelf_id || (int)$product->renter_id !== (int)$shelf->renter_id) {
+                if ((int) $product->shelf_id !== (int) $shelf->shelf_id || (int) $product->renter_id !== (int) $shelf->renter_id) {
                     return back()->withErrors([
                         'items' => "Product '{$product->product_name}' does not belong to the selected shelf/renter."
                     ])->withInput();
@@ -93,15 +97,20 @@ class AdjustmentController extends Controller
                     ['quantity_on_hand' => 0, 'reorder_level' => 5]
                 );
 
-                $current = (int)$inv->quantity_on_hand;
+                $current = (int) $inv->quantity_on_hand;
                 $mode = $row['mode'];
-                $qty  = (int)$row['quantity'];
+                $qty = (int) $row['quantity'];
 
-                // compute delta
                 $newQty = $current;
-                if ($mode === 'set') $newQty = $qty;
-                if ($mode === 'increase') $newQty = $current + $qty;
-                if ($mode === 'decrease') $newQty = max(0, $current - $qty);
+                if ($mode === 'set') {
+                    $newQty = $qty;
+                }
+                if ($mode === 'increase') {
+                    $newQty = $current + $qty;
+                }
+                if ($mode === 'decrease') {
+                    $newQty = max(0, $current - $qty);
+                }
 
                 $delta = $newQty - $current;
 
@@ -110,7 +119,6 @@ class AdjustmentController extends Controller
                 }
 
                 if ($delta > 0) {
-                    // add a virtual batch for audit trail
                     $batch = ProductBatch::create([
                         'product_id'         => $product->product_id,
                         'lot_number'         => 'ADJ+' . Str::upper(Str::random(6)),
@@ -123,13 +131,26 @@ class AdjustmentController extends Controller
                     ]);
 
                     InventoryTransactionItem::create([
-                        'transaction_id' => $trx->transaction_id,
-                        'batch_id'       => $batch->batch_id,
-                        'quantity'       => $delta,
-                        'unit_cost'      => null,
+                        'transaction_id'      => $trx->transaction_id,
+                        'product_id'          => $product->product_id,
+                        'batch_id'            => $batch->batch_id,
+                        'lot_number'          => $batch->lot_number,
+                        'manufacturing_date'  => $batch->manufacturing_date,
+                        'expiration_date'     => $batch->expiration_date,
+                        'quantity'            => $delta,
+                        'unit_cost'           => null,
                     ]);
+
+                    $batchBreakdown[] = [
+                        'product_id' => $product->product_id,
+                        'product_name' => $product->product_name,
+                        'type' => 'added',
+                        'batch_id' => $batch->batch_id,
+                        'lot_number' => $batch->lot_number,
+                        'expiration_date' => $batch->expiration_date,
+                        'quantity' => $delta,
+                    ];
                 } else {
-                    // consume FIFO batches
                     $toRemove = abs($delta);
 
                     $batches = ProductBatch::where('product_id', $product->product_id)
@@ -141,18 +162,34 @@ class AdjustmentController extends Controller
                         ->get();
 
                     foreach ($batches as $batch) {
-                        if ($toRemove <= 0) break;
+                        if ($toRemove <= 0) {
+                            break;
+                        }
 
-                        $take = min($toRemove, (int)$batch->quantity_remaining);
-                        $batch->quantity_remaining = (int)$batch->quantity_remaining - $take;
+                        $take = min($toRemove, (int) $batch->quantity_remaining);
+                        $batch->quantity_remaining = (int) $batch->quantity_remaining - $take;
                         $batch->save();
 
                         InventoryTransactionItem::create([
-                            'transaction_id' => $trx->transaction_id,
-                            'batch_id'       => $batch->batch_id,
-                            'quantity'       => $take,
-                            'unit_cost'      => null,
+                            'transaction_id'      => $trx->transaction_id,
+                            'product_id'          => $product->product_id,
+                            'batch_id'            => $batch->batch_id,
+                            'lot_number'          => $batch->lot_number,
+                            'manufacturing_date'  => $batch->manufacturing_date,
+                            'expiration_date'     => $batch->expiration_date,
+                            'quantity'            => $take,
+                            'unit_cost'           => null,
                         ]);
+
+                        $batchBreakdown[] = [
+                            'product_id' => $product->product_id,
+                            'product_name' => $product->product_name,
+                            'type' => 'removed',
+                            'batch_id' => $batch->batch_id,
+                            'lot_number' => $batch->lot_number,
+                            'expiration_date' => $batch->expiration_date,
+                            'quantity' => $take,
+                        ];
 
                         $toRemove -= $take;
                     }
@@ -164,10 +201,47 @@ class AdjustmentController extends Controller
                     }
                 }
 
+                $logItems[] = [
+                    'product_id' => $product->product_id,
+                    'product_name' => $product->product_name,
+                    'mode' => $mode,
+                    'input_quantity' => $qty,
+                    'quantity_before' => $current,
+                    'quantity_after' => $newQty,
+                    'delta' => $delta,
+                ];
+
                 $inv->quantity_on_hand = $newQty;
                 $inv->last_updated = now();
                 $inv->save();
             }
+
+            $totalChangedUnits = collect($logItems)->sum(function ($item) {
+                return abs((int) $item['delta']);
+            });
+
+            AuditLogService::log(
+                'Adjust',
+                'Inventory',
+                "Adjustment {$reference} for Shelf {$shelf->shelf_number}" .
+                ($shelf->renter?->renter_company_name ? " ({$shelf->renter->renter_company_name})" : '') .
+                " with " . count($logItems) . " item(s), total changed units {$totalChangedUnits}.",
+                $trx->transaction_id,
+                $reference,
+                [
+                    'transaction_type' => 'ADJUSTMENT',
+                    'transaction_date' => now()->format('Y-m-d H:i:s'),
+                    'shelf_id' => $shelf->shelf_id,
+                    'shelf_number' => $shelf->shelf_number,
+                    'renter_id' => $shelf->renter_id,
+                    'renter_name' => $shelf->renter->renter_company_name ?? null,
+                    'remarks' => $validated['remarks'] ?? null,
+                    'total_items' => count($logItems),
+                    'total_changed_units' => $totalChangedUnits,
+                    'items' => $logItems,
+                    'batch_breakdown' => $batchBreakdown,
+                ]
+            );
 
             return redirect()
                 ->route('admin.inventory.index')

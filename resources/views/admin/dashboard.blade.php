@@ -3,108 +3,99 @@
 @section('title', 'Admin Dashboard')
 
 @section('content')
-<div class="dashboard-page">
-    <div class="page-header">
-        <div>
-            <h1 class="page-title">Dashboard</h1>
-            <p class="page-subtitle">
-                Overview of renters, shelves, stock, and recent activity.
-            </p>
-        </div>
+<div class="header-section">
+    <h1>Dashboard</h1>
+    <p>Overview of renters, shelves, stock, and inventory activity.</p>
+</div>
+
+<div class="cards-grid" style="margin-top:12px;">
+    <div class="stat-card">
+        <div class="stat-label">Active Renters</div>
+        <div class="stat-value">{{ $activeRenters ?? 0 }}</div>
+        <div class="stat-footer">Lessees with active contracts</div>
     </div>
 
-    <div class="stats-grid">
-        <div class="metric-card">
-            <div class="metric-label">Active Renters</div>
-            <div class="metric-value">{{ $activeRenters ?? 0 }}</div>
-            <div class="metric-note">Lessees with active contracts</div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">Occupied Shelves</div>
-            <div class="metric-value">{{ $occupiedShelves ?? 0 }} / {{ $totalShelves ?? 0 }}</div>
-            <div class="metric-note">Occupied vs total shelves</div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">Total Inventory</div>
-            <div class="metric-value">{{ $totalInventoryUnits ?? 0 }}</div>
-            <div class="metric-note">Units currently in stock</div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">Inventory Retail Value</div>
-            <div class="metric-value">₱{{ number_format($inventoryRetailValue ?? 0, 2) }}</div>
-            <div class="metric-note">Estimated value (qty × product price)</div>
-        </div>
+    <div class="stat-card">
+        <div class="stat-label">Occupied Shelves</div>
+        <div class="stat-value">{{ $occupiedShelves ?? 0 }} / {{ $totalShelves ?? 0 }}</div>
+        <div class="stat-footer">Occupied vs total shelves</div>
     </div>
 
-    <div class="stats-grid secondary-grid">
-        <div class="metric-card">
-            <div class="metric-label">Low Stock Alerts</div>
-            <div class="metric-value">{{ $lowStockCount ?? 0 }}</div>
-            <div class="metric-note">Items below reorder level</div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">Expiring Soon</div>
-            <div class="metric-value">{{ $expiringSoonCount ?? 0 }}</div>
-            <div class="metric-note">Batches expiring within 7 days</div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">Pending Approvals</div>
-            <div class="metric-value">{{ $pendingApprovalsCount ?? 0 }}</div>
-            <div class="metric-note">Products or transactions waiting review</div>
-        </div>
-
-        <div class="metric-card">
-            <div class="metric-label">Today's Sales</div>
-            <div class="metric-value">₱{{ number_format($todaySalesTotal ?? 0, 2) }}</div>
-            <div class="metric-note">Sales recorded today</div>
-        </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Inventory</div>
+        <div class="stat-value">{{ $totalInventoryUnits ?? 0 }}</div>
+        <div class="stat-footer">Units currently in stock</div>
     </div>
 
-    <div class="panel">
-        <div class="panel-header">
-            <h2 class="panel-title">Recent Transactions</h2>
-            <a href="/transactions" class="panel-link">View all</a>
-        </div>
+    <div class="stat-card">
+        <div class="stat-label">Low Stock Alerts</div>
+        <div class="stat-value">{{ $lowStockCount ?? 0 }}</div>
+        <div class="stat-footer">Items below reorder level</div>
+    </div>
 
-        <div class="table-wrap">
-            <table class="admin-table">
-                <thead>
+    <div class="stat-card">
+        <div class="stat-label">Expiring Soon</div>
+        <div class="stat-value">{{ $expiringSoonCount ?? 0 }}</div>
+        <div class="stat-footer">Batches expiring within 7 days</div>
+    </div>
+
+    <div class="stat-card">
+        <div class="stat-label">Pending Approvals</div>
+        <div class="stat-value">{{ $pendingApprovalsCount ?? 0 }}</div>
+        <div class="stat-footer">Transactions waiting for review</div>
+    </div>
+</div>
+
+<div class="activity-section" style="margin-top:16px;">
+    <div class="activity-header">Quick Actions</div>
+
+    <div style="padding:20px; display:flex; flex-wrap:wrap; gap:12px;">
+        <a href="{{ route('admin.renters.create') }}" class="btn-primary">+ Add Renter</a>
+        <a href="{{ route('admin.shelves.create') }}" class="btn-outline">+ Add Shelf</a>
+        <a href="{{ route('admin.products.create') }}" class="btn-outline">+ Add Product</a>
+        <a href="{{ route('admin.inventory.stockin.create') }}" class="btn-outline">Stock In</a>
+        <a href="{{ route('admin.inventory.stockout.create') }}" class="btn-outline">Stock Out</a>
+        <a href="{{ route('admin.inventory.adjust.create') }}" class="btn-outline">Adjustment</a>
+        <a href="{{ route('admin.inventory.pending') }}" class="btn-outline">Pending Approvals</a>
+        <a href="{{ route('admin.logs.index') }}" class="btn-outline">Audit Logs</a>
+    </div>
+</div>
+
+<div class="activity-section" style="margin-top:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; padding:18px 20px 0;">
+        <div class="activity-header" style="padding:0; margin:0;">Recent Activities</div>
+        <a href="{{ route('admin.logs.index') }}" class="btn-mini-outline">View Audit Logs</a>
+    </div>
+
+    <div class="activity-table-scrollable" style="margin-top:14px;">
+        <table class="activity-table">
+            <thead>
+                <tr>
+                    <th>Date & Time</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Module</th>
+                    <th>Description</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse(($recentActivities ?? []) as $log)
                     <tr>
-                        <th>Date</th>
-                        <th>Reference</th>
-                        <th class="text-center">Type</th>
-                        <th class="text-center">Shelf</th>
-                        <th>Renter</th>
-                        <th>Actioned By</th>
-                        <th class="text-right">Status</th>
+                        <td>{{ $log['date'] ?? '-' }}</td>
+                        <td>{{ $log['user'] ?? 'System' }}</td>
+                        <td>
+                            <span class="badge">{{ $log['action'] ?? '-' }}</span>
+                        </td>
+                        <td>{{ $log['module'] ?? '-' }}</td>
+                        <td>{{ $log['description'] ?? '-' }}</td>
                     </tr>
-                </thead>
-                <tbody>
-                    @forelse(($recentTransactions ?? []) as $trx)
-                        <tr>
-                            <td>{{ $trx['date'] ?? '-' }}</td>
-                            <td>{{ $trx['reference'] ?? '-' }}</td>
-                            <td class="text-center">
-                                <span class="status-chip">{{ $trx['type'] ?? '-' }}</span>
-                            </td>
-                            <td class="text-center">{{ $trx['shelf'] ?? '-' }}</td>
-                            <td>{{ $trx['renter'] ?? '-' }}</td>
-                            <td>{{ $trx['actioned_by'] ?? '-' }}</td>
-                            <td class="text-right">{{ $trx['status'] ?? '-' }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="empty-cell">No transactions yet.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+                @empty
+                    <tr>
+                        <td colspan="5" class="empty-state">No recent activities yet.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 </div>
 @endsection

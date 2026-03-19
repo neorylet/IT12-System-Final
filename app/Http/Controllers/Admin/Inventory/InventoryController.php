@@ -16,13 +16,19 @@ class InventoryController extends Controller
         $shelves = Shelf::with(['renter', 'products.inventory'])
             ->when($q, function ($query) use ($q) {
                 $query->where('shelf_number', 'like', "%{$q}%")
-                      ->orWhereHas('renter', fn($r) => $r->where('renter_company_name', 'like', "%{$q}%"))
-                      ->orWhereHas('products', fn($p) => $p->where('product_name', 'like', "%{$q}%"));
+                    ->orWhereHas('renter', fn($r) => $r->where('renter_company_name', 'like', "%{$q}%"))
+                    ->orWhereHas('products', fn($p) => $p->where('product_name', 'like', "%{$q}%"));
             })
             ->orderBy('shelf_number')
             ->get();
 
-        $transactions = InventoryTransaction::with(['shelf', 'renter', 'actionedBy'])
+        $transactions = InventoryTransaction::with([
+                'shelf',
+                'renter',
+                'actionedBy',
+                'items.batch.product',
+                'items.product',
+            ])
             ->latest('transaction_date')
             ->take(20)
             ->get();

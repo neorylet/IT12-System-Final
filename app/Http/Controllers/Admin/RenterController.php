@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Renter;
+use App\Services\AuditLogService;
 use Illuminate\Http\Request;
 
 class RenterController extends Controller
@@ -46,7 +47,27 @@ class RenterController extends Controller
             'status' => ['required', 'in:active,inactive'],
         ]);
 
-        Renter::create($validated);
+        $renter = Renter::create($validated);
+
+        AuditLogService::log(
+            'Create',
+            'Renters',
+            "Created renter '{$renter->renter_company_name}'.",
+            $renter->renter_id,
+            'RNT-' . $renter->renter_id,
+            [
+                'renter_id' => $renter->renter_id,
+                'renter_first_name' => $renter->renter_first_name,
+                'renter_last_name' => $renter->renter_last_name,
+                'renter_company_name' => $renter->renter_company_name,
+                'contact_person' => $renter->contact_person,
+                'contact_number' => $renter->contact_number,
+                'email' => $renter->email,
+                'contract_start' => $renter->contract_start,
+                'contract_end' => $renter->contract_end,
+                'status' => $renter->status,
+            ]
+        );
 
         return redirect()->route('admin.renters.index')->with('success', 'Renter created successfully.');
     }
@@ -75,14 +96,77 @@ class RenterController extends Controller
             'status' => ['required', 'in:active,inactive'],
         ]);
 
+        $before = [
+            'renter_id' => $renter->renter_id,
+            'renter_first_name' => $renter->renter_first_name,
+            'renter_last_name' => $renter->renter_last_name,
+            'renter_company_name' => $renter->renter_company_name,
+            'contact_person' => $renter->contact_person,
+            'contact_number' => $renter->contact_number,
+            'email' => $renter->email,
+            'contract_start' => $renter->contract_start,
+            'contract_end' => $renter->contract_end,
+            'status' => $renter->status,
+        ];
+
         $renter->update($validated);
+
+        $after = [
+            'renter_id' => $renter->renter_id,
+            'renter_first_name' => $renter->renter_first_name,
+            'renter_last_name' => $renter->renter_last_name,
+            'renter_company_name' => $renter->renter_company_name,
+            'contact_person' => $renter->contact_person,
+            'contact_number' => $renter->contact_number,
+            'email' => $renter->email,
+            'contract_start' => $renter->contract_start,
+            'contract_end' => $renter->contract_end,
+            'status' => $renter->status,
+        ];
+
+        AuditLogService::log(
+            'Update',
+            'Renters',
+            "Updated renter '{$renter->renter_company_name}'.",
+            $renter->renter_id,
+            'RNT-' . $renter->renter_id,
+            [
+                'before' => $before,
+                'after' => $after,
+            ]
+        );
 
         return redirect()->route('admin.renters.index')->with('success', 'Renter updated successfully.');
     }
 
     public function destroy(Renter $renter)
     {
+        $details = [
+            'renter_id' => $renter->renter_id,
+            'renter_first_name' => $renter->renter_first_name,
+            'renter_last_name' => $renter->renter_last_name,
+            'renter_company_name' => $renter->renter_company_name,
+            'contact_person' => $renter->contact_person,
+            'contact_number' => $renter->contact_number,
+            'email' => $renter->email,
+            'contract_start' => $renter->contract_start,
+            'contract_end' => $renter->contract_end,
+            'status' => $renter->status,
+        ];
+
+        $renterName = $renter->renter_company_name;
+        $renterId = $renter->renter_id;
+
         $renter->delete();
+
+        AuditLogService::log(
+            'Delete',
+            'Renters',
+            "Deleted renter '{$renterName}'.",
+            $renterId,
+            'RNT-' . $renterId,
+            $details
+        );
 
         return redirect()->route('admin.renters.index')->with('success', 'Renter deleted successfully.');
     }

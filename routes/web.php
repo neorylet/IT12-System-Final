@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\RenterController;
 use App\Http\Controllers\Admin\ShelfController;
 use App\Http\Controllers\Admin\ShelfAssignmentController;
 use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\AuditLogController;
 
 use App\Http\Controllers\Admin\Inventory\InventoryController;
 use App\Http\Controllers\Admin\Inventory\StockInController;
@@ -16,6 +17,8 @@ use App\Http\Controllers\Admin\Inventory\ApprovalController;
 
 use App\Http\Controllers\Staff\Inventory\InventoryController as StaffInventoryController;
 use App\Http\Controllers\Staff\Inventory\StockInController as StaffStockInController;
+use App\Http\Controllers\Admin\DashboardController;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -52,7 +55,7 @@ Route::middleware(['auth', 'role:Admin'])
     ->name('admin.')
     ->group(function () {
 
-        Route::view('/dashboard', 'admin.dashboard')->name('dashboard');
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
         // Core Modules
         Route::resource('renters', RenterController::class);
@@ -69,6 +72,9 @@ Route::middleware(['auth', 'role:Admin'])
         // Inventory Dashboard
         Route::get('inventory', [InventoryController::class, 'index'])->name('inventory.index');
 
+        Route::get('inventory/transactions/{transaction}', [InventoryController::class, 'show'])
+            ->name('inventory.transactions.show');
+
         // Stock In
         Route::get('inventory/stock-in', [StockInController::class, 'create'])->name('inventory.stockin.create');
         Route::post('inventory/stock-in', [StockInController::class, 'store'])->name('inventory.stockin.store');
@@ -82,16 +88,12 @@ Route::middleware(['auth', 'role:Admin'])
         Route::post('inventory/adjust', [AdjustmentController::class, 'store'])->name('inventory.adjust.store');
 
         // Audit Logs
-        Route::view('logs', 'admin.logs.index')->name('logs.index');
-        Route::view('logs/{id}', 'admin.logs.view')->name('logs.view');
+        Route::get('logs', [AuditLogController::class, 'index'])->name('logs.index');
 
+        // Pending Approvals
         Route::get('inventory/pending', [ApprovalController::class, 'index'])->name('inventory.pending');
-Route::patch('inventory/{transaction}/approve', [ApprovalController::class, 'approve'])->name('inventory.approve');
-Route::patch('inventory/{transaction}/reject', [ApprovalController::class, 'reject'])->name('inventory.reject');
-
-        // Sales & Financial
-        Route::view('rental-payments', 'admin.rentalpayment.index')->name('rentalpayment.index');
-        Route::view('renter-payouts', 'admin.renterpayout.index')->name('renterpayout.index');
+        Route::patch('inventory/{transaction}/approve', [ApprovalController::class, 'approve'])->name('inventory.approve');
+        Route::patch('inventory/{transaction}/reject', [ApprovalController::class, 'reject'])->name('inventory.reject');
     });
 
 /*
@@ -113,7 +115,6 @@ Route::middleware(['auth', 'role:Staff'])
         Route::get('inventory/stock-in', [StaffStockInController::class, 'create'])->name('inventory.stockin.create');
         Route::post('inventory/stock-in', [StaffStockInController::class, 'store'])->name('inventory.stockin.store');
     });
-
 
 /*
 |--------------------------------------------------------------------------

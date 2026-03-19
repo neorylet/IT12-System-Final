@@ -46,4 +46,8 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    public function auditLogs()
+{
+    return $this->hasMany(AuditLog::class, 'user_id', 'id');
+}
 }
