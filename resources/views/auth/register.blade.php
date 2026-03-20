@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
-<x-guest-layout> 
-=======
 <x-guest-layout>
->>>>>>> Stashed changes
     <style>
         @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Fraunces:ital,wght@0,300;0,400;1,300&display=swap');
 
@@ -176,29 +172,6 @@
             100% { transform: translateX(-100%); }
         }
 
-<<<<<<< Updated upstream
-        .btn-secondary-register {
-            margin-top: 0.75rem;
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: transparent;
-            color: var(--accent);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 500;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            cursor: pointer;
-            transition: background 0.2s, color 0.2s, border-color 0.2s;
-        }
-
-        .btn-secondary-register:hover {
-            background: #e4e0d9;
-            border-color: var(--accent);
-        }
-
-=======
->>>>>>> Stashed changes
         .login-row {
             margin-top: 1.5rem;
             text-align: center;
@@ -217,10 +190,7 @@
 
     <div class="register-wrapper">
         <div class="container-register">
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
             <div class="brand">
                 <img src="{{ asset('build/images/whatever-logo.png') }}" alt="Application logo" class="brand-logo">
             </div>
@@ -234,10 +204,7 @@
                 <form method="POST" action="{{ route('register') }}">
                     @csrf
 
-<<<<<<< Updated upstream
-=======
                     {{-- Name --}}
->>>>>>> Stashed changes
                     <div class="form-group">
                         <label for="name">Name</label>
                         <input
@@ -246,18 +213,6 @@
                             name="name"
                             value="{{ old('name') }}"
                             required
-<<<<<<< Updated upstream
-                            autocomplete="name"
-                            autofocus
-                            class="input-register {{ $errors->has('name') ? 'is-invalid' : '' }}"
-                            placeholder="Your full name"
-                        >
-                        @error('name')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-=======
                             autofocus
                             autocomplete="name"
                             class="input-register {{ $errors->get('name') ? 'is-invalid' : '' }}"
@@ -269,7 +224,6 @@
                     </div>
 
                     {{-- Email Address --}}
->>>>>>> Stashed changes
                     <div class="form-group">
                         <label for="email">Email Address</label>
                         <input
@@ -279,16 +233,6 @@
                             value="{{ old('email') }}"
                             required
                             autocomplete="username"
-<<<<<<< Updated upstream
-                            class="input-register {{ $errors->has('email') ? 'is-invalid' : '' }}"
-                            placeholder="you@example.com"
-                        >
-                        @error('email')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-=======
                             class="input-register {{ $errors->get('email') ? 'is-invalid' : '' }}"
                             placeholder="you@example.com"
                         >
@@ -298,7 +242,6 @@
                     </div>
 
                     {{-- Password --}}
->>>>>>> Stashed changes
                     <div class="form-group">
                         <label for="password">Password</label>
                         <input
@@ -307,16 +250,6 @@
                             name="password"
                             required
                             autocomplete="new-password"
-<<<<<<< Updated upstream
-                            class="input-register {{ $errors->has('password') ? 'is-invalid' : '' }}"
-                            placeholder="Create a password"
-                        >
-                        @error('password')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-=======
                             class="input-register {{ $errors->get('password') ? 'is-invalid' : '' }}"
                             placeholder="Create a password"
                         >
@@ -326,7 +259,6 @@
                     </div>
 
                     {{-- Confirm Password --}}
->>>>>>> Stashed changes
                     <div class="form-group">
                         <label for="password_confirmation">Confirm Password</label>
                         <input
@@ -335,32 +267,6 @@
                             name="password_confirmation"
                             required
                             autocomplete="new-password"
-<<<<<<< Updated upstream
-                            class="input-register"
-                            placeholder="Repeat your password"
-                        >
-                        @error('password_confirmation')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-
-                    <button type="submit" class="btn-primary-register">
-                        Register
-                    </button>
-
-                    <div class="scrolling-text">
-                        <span>Welcome · Make sure your information is correct before registering · You can always update profile details later.</span>
-                    </div>
-                </form>
-                <div class="login-row">
-                    Already have an account?
-                    <a href="{{ route('login') }}">Log in</a>
-                </div>
-            </div>
-        </div>
-    </div>
-</x-guest-layout>
-=======
                             class="input-register {{ $errors->get('password_confirmation') ? 'is-invalid' : '' }}"
                             placeholder="Repeat your password"
                         >
@@ -386,4 +292,3 @@
         </div>
     </div>
 </x-guest-layout>
->>>>>>> Stashed changes

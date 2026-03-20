@@ -1,11 +1,5 @@
-<<<<<<< Updated upstream
-<x-guest-layout> 
-    <style>
-        /* Reset & base */
-=======
 <x-guest-layout>
     <style>
->>>>>>> Stashed changes
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
@@ -26,16 +20,9 @@
             box-shadow: 0 4px 32px rgba(0,0,0,0.08);
         }
 
-<<<<<<< Updated upstream
-        /* Heading */
-        .card-title {
-            font-size: 2.4rem;
-            font-weight:250;
-=======
         .card-title {
             font-size: 2.4rem;
             font-weight: 250;
->>>>>>> Stashed changes
             color: #1a1a1a;
             letter-spacing: -0.5px;
             margin-bottom: 6px;
@@ -50,10 +37,6 @@
             line-height: 1.5;
         }
 
-<<<<<<< Updated upstream
-        /* Session Status */
-=======
->>>>>>> Stashed changes
         .session-status {
             background: #eaf4ea;
             color: #2d6a2d;
@@ -64,10 +47,6 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
-<<<<<<< Updated upstream
-        /* Form group */
-=======
->>>>>>> Stashed changes
         .form-group {
             margin-bottom: 24px;
         }
@@ -105,13 +84,10 @@
             box-shadow: 0 0 0 3px rgba(59, 91, 219, 0.12);
         }
 
-<<<<<<< Updated upstream
-=======
         .form-input.is-invalid {
             border-color: #d9534f;
         }
 
->>>>>>> Stashed changes
         .form-error {
             color: #d9534f;
             font-size: 0.8rem;
@@ -119,10 +95,6 @@
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
-<<<<<<< Updated upstream
-        /* Submit button */
-=======
->>>>>>> Stashed changes
         .btn-primary {
             display: block;
             width: 100%;
@@ -148,10 +120,6 @@
             transform: scale(0.99);
         }
 
-<<<<<<< Updated upstream
-        /* Back to login link */
-=======
->>>>>>> Stashed changes
         .back-link {
             text-align: center;
             margin-top: 24px;
@@ -190,29 +158,18 @@
                 <label class="form-label" for="email">Email Address</label>
                 <input
                     id="email"
-<<<<<<< Updated upstream
-                    class="form-input"
-=======
->>>>>>> Stashed changes
                     type="email"
                     name="email"
                     value="{{ old('email') }}"
                     placeholder="you@example.com"
                     required
                     autofocus
-<<<<<<< Updated upstream
-                />
-                @error('email')
-                    <p class="form-error">{{ $message }}</p>
-                @enderror
-=======
                     autocomplete="username"
                     class="form-input {{ $errors->get('email') ? 'is-invalid' : '' }}"
                 />
                 @foreach ($errors->get('email') as $message)
                     <p class="form-error">{{ $message }}</p>
                 @endforeach
->>>>>>> Stashed changes
             </div>
 
             <button type="submit" class="btn-primary">

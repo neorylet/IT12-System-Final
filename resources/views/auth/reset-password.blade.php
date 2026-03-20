@@ -1,12 +1,6 @@
-<<<<<<< Updated upstream
-<x-guest-layout> 
-    <form method="POST" action="{{ route('password.store') }}">
-        @csrf
-=======
 <x-guest-layout>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
->>>>>>> Stashed changes
 
         body {
             min-height: 100vh;
