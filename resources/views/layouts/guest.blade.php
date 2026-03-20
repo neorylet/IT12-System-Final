@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
@@ -7,23 +8,33 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600;700;800&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans text-gray-900 antialiased">
-        <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
-            <div>
-                <a href="/">
-                    <x-application-logo class="w-20 h-20 fill-current text-gray-500" />
-                </a>
-            </div>
+    <body class="font-sans antialiased bg-[linear-gradient(135deg,#f8f5f1_0%,#efe6dc_100%)] text-gray-900">
+        <div class="min-h-screen flex items-center justify-center px-4 py-8">
+            <div class="w-full max-w-md">
+                
+                <div class="text-center mb-6">
+                    <a href="/" class="inline-flex justify-center">
+                        <div class="w-20 h-20 rounded-2xl bg-white border border-[#eadfce] shadow-sm flex items-center justify-center">
+                            <x-application-logo class="w-10 h-10 fill-current text-[#8b5e3c]" />
+                        </div>
+                    </a>
 
-            <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
-                {{ $slot }}
+                    <h1 class="mt-4 text-3xl font-extrabold text-[#5c3b1e]">
+                        Inventory System
+                    </h1>
+                    <p class="mt-2 text-sm text-[#8b6b52]">
+                        Secure access for authorized users
+                    </p>
+                </div>
+
+                <div class="w-full bg-white border border-[#eadfce] shadow-xl overflow-hidden rounded-2xl px-6 py-6 sm:px-8 sm:py-8">
+                    {{ $slot }}
+                </div>
             </div>
         </div>
     </body>

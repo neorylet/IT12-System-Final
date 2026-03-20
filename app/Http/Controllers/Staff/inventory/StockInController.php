@@ -30,11 +30,16 @@ class StockInController extends Controller
         }
 
         $products = Product::with(['shelf', 'renter', 'inventory'])
-            ->where('status', 'Approved') // only approved products should be stockable
+            ->where('status', 'Approved')
             ->when($q, function ($query) use ($q) {
                 $query->where(function ($qq) use ($q) {
                     $qq->where('product_name', 'like', "%{$q}%")
                        ->orWhere('category', 'like', "%{$q}%");
+                });
+            })
+            ->when($selectedShelfId, function ($query) use ($selectedShelfId) {
+                $query->whereHas('inventory', function ($inv) use ($selectedShelfId) {
+                    $inv->where('shelf_id', $selectedShelfId);
                 });
             })
             ->orderBy('product_name')
@@ -53,14 +58,14 @@ class StockInController extends Controller
     {
         $validated = $request->validate([
             'shelf_id' => ['required', 'exists:shelves,shelf_id'],
+            'reference_no' => ['nullable', 'string', 'max:100'],
+            'transaction_date' => ['required', 'date'],
             'remarks'  => ['nullable', 'string', 'max:500'],
 
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,product_id'],
             'items.*.quantity'   => ['required', 'integer', 'min:1'],
-
-            // request details to be reviewed by admin later
-            'items.*.lot_number'         => ['nullable', 'string', 'max:50'],
+            'items.*.lot_number' => ['nullable', 'string', 'max:50'],
             'items.*.manufacturing_date' => ['nullable', 'date'],
             'items.*.expiration_date'    => ['nullable', 'date'],
             'items.*.unit_cost'          => ['nullable', 'numeric', 'min:0'],
@@ -75,13 +80,15 @@ class StockInController extends Controller
                 abort(422, 'This shelf has no assigned renter. Assign a renter first.');
             }
 
-            $reference = 'PIN-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
+            $reference = !empty($validated['reference_no'])
+                ? $validated['reference_no']
+                : ('PIN-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)));
 
             $transaction = InventoryTransaction::create([
                 'transaction_type' => 'IN',
                 'renter_id'        => $shelf->renter_id,
                 'shelf_id'         => $shelf->shelf_id,
-                'transaction_date' => now(),
+                'transaction_date' => $validated['transaction_date'],
                 'reference_no'     => $reference,
                 'remarks'          => $validated['remarks'] ?? null,
                 'status'           => 'Pending',
@@ -96,16 +103,17 @@ class StockInController extends Controller
                     ->where('status', 'Approved')
                     ->firstOrFail();
 
-                // enforce matching shelf and renter
-                if ((int) $product->shelf_id !== (int) $shelf->shelf_id ||
-                    (int) $product->renter_id !== (int) $shelf->renter_id) {
+                if (
+                    (int) $product->shelf_id !== (int) $shelf->shelf_id ||
+                    (int) $product->renter_id !== (int) $shelf->renter_id
+                ) {
                     abort(422, "Product '{$product->product_name}' does not belong to the selected shelf/renter.");
                 }
 
                 InventoryTransactionItem::create([
                     'transaction_id'      => $transaction->transaction_id,
                     'product_id'          => $product->product_id,
-                    'batch_id'            => null, // real batch will be created upon admin approval
+                    'batch_id'            => null,
                     'lot_number'          => $row['lot_number'] ?? null,
                     'manufacturing_date'  => $row['manufacturing_date'] ?? null,
                     'expiration_date'     => $row['expiration_date'] ?? null,

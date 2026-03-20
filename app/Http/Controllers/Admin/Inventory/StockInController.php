@@ -39,6 +39,9 @@ class StockInController extends Controller
                        ->orWhere('category', 'like', "%{$q}%");
                 });
             })
+            ->when($selectedShelfId, function ($query) use ($selectedShelfId) {
+                $query->where('shelf_id', $selectedShelfId);
+            })
             ->orderBy('product_name')
             ->get();
 
@@ -55,6 +58,8 @@ class StockInController extends Controller
     {
         $validated = $request->validate([
             'shelf_id' => ['required', 'exists:shelves,shelf_id'],
+            'reference_no' => ['nullable', 'string', 'max:100'],
+            'transaction_date' => ['required', 'date'],
             'remarks'  => ['nullable', 'string', 'max:500'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'exists:products,product_id'],
@@ -74,13 +79,15 @@ class StockInController extends Controller
                 ])->withInput();
             }
 
-            $reference = 'IN-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6));
+            $reference = !empty($validated['reference_no'])
+                ? $validated['reference_no']
+                : ('IN-' . now()->format('Ymd') . '-' . Str::upper(Str::random(6)));
 
             $trx = InventoryTransaction::create([
                 'transaction_type' => 'IN',
                 'renter_id'        => $shelf->renter_id,
                 'shelf_id'         => $shelf->shelf_id,
-                'transaction_date' => now(),
+                'transaction_date' => $validated['transaction_date'],
                 'reference_no'     => $reference,
                 'remarks'          => $validated['remarks'] ?? null,
                 'created_by'       => auth()->id(),
@@ -99,18 +106,16 @@ class StockInController extends Controller
                     ])->withInput();
                 }
 
-                $hasBatchData = !empty($row['expiration_date']) || !empty($row['lot_number']);
-
                 $batch = ProductBatch::create([
                     'product_id'         => $product->product_id,
-                    'lot_number'         => $hasBatchData
-                        ? ($row['lot_number'] ?? ('LOT-' . Str::upper(Str::random(6))))
-                        : ('NOEXP-' . Str::upper(Str::random(6))),
+                    'lot_number'         => !empty($row['lot_number'])
+                        ? $row['lot_number']
+                        : 'LOT-' . Str::upper(Str::random(6)),
                     'manufacturing_date' => $row['manufacturing_date'] ?? null,
                     'expiration_date'    => $row['expiration_date'] ?? now()->addYears(50)->toDateString(),
                     'quantity_received'  => (int) $row['quantity'],
                     'quantity_remaining' => (int) $row['quantity'],
-                    'date_received'      => now()->toDateString(),
+                    'date_received'      => $validated['transaction_date'],
                     'status'             => 'Active',
                 ]);
 
@@ -118,7 +123,7 @@ class StockInController extends Controller
                     'transaction_id'      => $trx->transaction_id,
                     'product_id'          => $product->product_id,
                     'batch_id'            => $batch->batch_id,
-                    'lot_number'          => $row['lot_number'] ?? null,
+                    'lot_number'          => $batch->lot_number,
                     'manufacturing_date'  => $row['manufacturing_date'] ?? null,
                     'expiration_date'     => $row['expiration_date'] ?? null,
                     'quantity'            => (int) $row['quantity'],
@@ -157,7 +162,7 @@ class StockInController extends Controller
                 $reference,
                 [
                     'transaction_type' => 'IN',
-                    'transaction_date' => now()->format('Y-m-d H:i:s'),
+                    'transaction_date' => $validated['transaction_date'],
                     'shelf_id' => $shelf->shelf_id,
                     'shelf_number' => $shelf->shelf_number,
                     'renter_id' => $shelf->renter_id,

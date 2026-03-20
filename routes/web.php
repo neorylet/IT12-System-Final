@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Staff\Inventory\StockOutController as StaffStockOutController;
 use App\Http\Controllers\Staff\Inventory\AdjustmentController as StaffAdjustmentController;
 use App\Http\Controllers\Staff\DashboardController as StaffDashboardController;
+use App\Http\Controllers\Staff\Inventory\PendingController as StaffPendingController;
 
 
 /*
@@ -121,6 +122,8 @@ Route::middleware(['auth', 'role:Staff'])
 
         Route::get('/inventory/adjustment', [StaffAdjustmentController::class, 'create'])->name('inventory.adjust.create');
         Route::post('/inventory/adjustment', [StaffAdjustmentController::class, 'store'])->name('inventory.adjust.store');
+        Route::get('/inventory/pending', [StaffPendingController::class, 'index'])
+    ->name('inventory.pending');
     });
 /*
 |--------------------------------------------------------------------------

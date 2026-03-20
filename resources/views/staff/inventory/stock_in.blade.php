@@ -43,18 +43,32 @@
         <div class="transaction-top-grid transaction-top-grid-3">
           <div class="form-group form-group-full">
             <label class="form-label">Shelf</label>
-            <select name="shelf_id" class="form-input form-select" required>
-              <option value="">— Select shelf —</option>
-              @foreach($shelves as $s)
-                <option value="{{ $s->shelf_id }}"
-                  {{ (string)old('shelf_id', $selectedShelfId ?? '') === (string)$s->shelf_id ? 'selected' : '' }}>
-                  {{ $s->shelf_number }} — {{ $s->renter?->renter_company_name ?? 'Unassigned' }}
-                </option>
-              @endforeach
-            </select>
-            <div class="form-help-text">
-              Tip: Click “Stock In” from Inventory and the shelf will be selected automatically.
-            </div>
+
+            @if(!empty($selectedShelf))
+              <input type="hidden" name="shelf_id" value="{{ $selectedShelf->shelf_id }}">
+
+              <div class="form-input form-input-readonly">
+                {{ $selectedShelf->shelf_number }} — {{ $selectedShelf->renter?->renter_company_name ?? 'Unassigned' }}
+              </div>
+
+              <div class="form-help-text">
+                This request is locked to the selected shelf.
+              </div>
+            @else
+              <select name="shelf_id" class="form-input form-select" required>
+                <option value="">— Select shelf —</option>
+                @foreach($shelves as $s)
+                  <option value="{{ $s->shelf_id }}"
+                    {{ (string)old('shelf_id', $selectedShelfId ?? '') === (string)$s->shelf_id ? 'selected' : '' }}>
+                    {{ $s->shelf_number }} — {{ $s->renter?->renter_company_name ?? 'Unassigned' }}
+                  </option>
+                @endforeach
+              </select>
+
+              <div class="form-help-text">
+                Select the shelf where this stock-in request will be submitted.
+              </div>
+            @endif
           </div>
 
           <div class="form-group">
@@ -89,6 +103,12 @@
           </div>
         </div>
 
+        @if(!empty($selectedShelf) && $products->isEmpty())
+          <div class="form-alert form-alert-danger" style="margin-top:16px;">
+            No approved products are assigned to this shelf.
+          </div>
+        @endif
+
         <div class="transaction-items-section">
           <div class="transaction-items-header">
             <div>
@@ -96,7 +116,14 @@
               <div class="transaction-items-subtitle">These items will be submitted for admin approval.</div>
             </div>
 
-            <button type="button" class="btn-action-chip" id="btnAddRow">+ Add Item</button>
+            <button
+              type="button"
+              class="btn-action-chip"
+              id="btnAddRow"
+              {{ $products->isEmpty() ? 'disabled' : '' }}
+            >
+              + Add Item
+            </button>
           </div>
 
           <div class="table-card-wrap">
@@ -191,7 +218,13 @@
 
           <div class="form-actions form-actions-right">
             <a href="{{ route('staff.inventory.index') }}" class="btn-outline">Cancel</a>
-            <button type="submit" class="btn-primary">Submit Request</button>
+            <button
+              type="submit"
+              class="btn-primary"
+              {{ $products->isEmpty() ? 'disabled' : '' }}
+            >
+              Submit Request
+            </button>
           </div>
 
           <div class="transaction-footnote">
@@ -203,10 +236,25 @@
   </div>
 </div>
 
+<style>
+.form-input-readonly {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 10px 12px;
+    background: #f8f6f2;
+    border: 1px solid #e5dccf;
+    border-radius: 10px;
+    color: #5c3b1e;
+}
+</style>
+
 <script>
 (function () {
   const tbody = document.getElementById('itemsTbody');
   const btnAdd = document.getElementById('btnAddRow');
+
+  if (!tbody || !btnAdd) return;
 
   const productOptionsHtml = `{!! collect($products)->map(function($p){
       $label = e($p->product_name).' ('.e($p->category).')';
@@ -255,6 +303,7 @@
   }
 
   btnAdd.addEventListener('click', () => {
+    if (!productOptionsHtml.trim()) return;
     const nextIndex = tbody.querySelectorAll('tr').length;
     tbody.insertAdjacentHTML('beforeend', rowHtml(nextIndex));
     reindex();

@@ -250,6 +250,102 @@
         overflow: hidden;
     }
 
+    .receipt-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 18px;
+    }
+
+    .receipt-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #3b2f2f;
+    }
+
+    .receipt-subtitle {
+        font-size: 13px;
+        color: #7b6d63;
+        margin-top: 2px;
+    }
+
+    .receipt-ref-label,
+    .receipt-field-label {
+        font-size: 12px;
+        color: #8b7b70;
+    }
+
+    .receipt-ref-value {
+        font-size: 20px;
+        font-weight: 700;
+        color: #3b2f2f;
+    }
+
+    .receipt-card {
+        border: 1px solid #efe5da;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #fffdf9;
+    }
+
+    .receipt-card-top {
+        padding: 16px 18px;
+    }
+
+    .receipt-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px 24px;
+    }
+
+    .receipt-field-value {
+        font-size: 15px;
+        font-weight: 600;
+        color: #2f2a26;
+    }
+
+    .receipt-remarks {
+        margin-top: 14px;
+    }
+
+    .receipt-items-section {
+        border-top: 1px solid #efe5da;
+        padding: 16px 18px;
+    }
+
+    .receipt-items-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: #3b2f2f;
+        margin-bottom: 10px;
+    }
+
+    .receipt-items-scroll {
+        overflow-x: auto;
+    }
+
+    .receipt-items-table {
+        min-width: 700px;
+    }
+
+    .receipt-total-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 12px;
+    }
+
+    .receipt-total-box {
+        min-width: 240px;
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        font-size: 18px;
+        font-weight: 700;
+        color: #2f2a26;
+    }
+
     .align-right {
         text-align: right;
     }
@@ -265,6 +361,12 @@
 
     .w-180 {
         min-width: 180px;
+    }
+
+    @media (max-width: 768px) {
+        .receipt-grid {
+            grid-template-columns: 1fr;
+        }
     }
 </style>
 
@@ -316,26 +418,28 @@
             <div class="stat-footer">Batches expiring within 7 days</div>
         </div>
 
-        <div class="stat-card {{ ($pendingRequests ?? 0) > 0 ? 'stat-card-highlight' : '' }}">
-            <div class="stat-card-top">
-                <div>
-                    <div class="stat-label">Pending Requests</div>
-                    <div class="stat-value">{{ $pendingRequests ?? 0 }}</div>
+        <a href="{{ route('staff.inventory.pending') }}" class="card-link-reset">
+            <div class="stat-card {{ ($pendingRequests ?? 0) > 0 ? 'stat-card-highlight' : '' }}">
+                <div class="stat-card-top">
+                    <div>
+                        <div class="stat-label">Pending Requests</div>
+                        <div class="stat-value">{{ $pendingRequests ?? 0 }}</div>
+                    </div>
+
+                    <span class="btn-action-chip">
+                        View
+                    </span>
                 </div>
 
-                <span class="btn-action-chip">
-                    Review
-                </span>
+                <div class="stat-footer">
+                    @if(($pendingRequests ?? 0) > 0)
+                        View your submitted requests awaiting admin review
+                    @else
+                        No pending requests right now
+                    @endif
+                </div>
             </div>
-
-            <div class="stat-footer">
-                @if(($pendingRequests ?? 0) > 0)
-                    Recent requests are still awaiting admin review
-                @else
-                    No pending requests right now
-                @endif
-            </div>
-        </div>
+        </a>
     </div>
 
     <section class="panel">
@@ -434,12 +538,13 @@
                                     <div class="mini-value">{{ $shelfLow }}</div>
                                 </div>
 
-                                <button type="button"
-                                        class="btn-action-chip js-open-items"
-                                        data-shelf-id="{{ $shelf->shelf_id }}"
-                                        data-shelf="{{ $shelf->shelf_number }}"
-                                        data-renter="{{ $shelf->renter?->renter_company_name ?? '— Unassigned —' }}"
-                                        data-items='@json($itemsPayload)'>
+                                <button
+                                    type="button"
+                                    class="btn-action-chip js-open-items"
+                                    data-shelf-id="{{ $shelf->shelf_id }}"
+                                    data-shelf="{{ $shelf->shelf_number }}"
+                                    data-renter="{{ $shelf->renter?->renter_company_name ?? '— Unassigned —' }}"
+                                    data-items='@json($itemsPayload)'>
                                     Manage Items
                                 </button>
                             </div>
@@ -537,7 +642,7 @@
         <div class="panel-header">
             <div class="panel-title-wrap">
                 <h2 class="panel-title">Recent Inventory Transactions</h2>
-                <p class="panel-subtitle">Latest stock movement and request history.</p>
+                <p class="panel-subtitle">Latest stock movement and receipt history.</p>
             </div>
 
             <div class="panel-actions">
@@ -557,10 +662,47 @@
                         <th>Status</th>
                         <th>Actioned By</th>
                         <th>Remarks</th>
+                        <th class="align-center">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($transactions as $t)
+                        @php
+                            $receiptItems = $t->items->map(function ($item) {
+                                return [
+                                    'product_name' => $item->batch?->product?->product_name
+                                        ?? $item->product?->product_name
+                                        ?? 'Unknown Product',
+                                    'lot_number' => $item->batch?->lot_number
+                                        ?? $item->lot_number
+                                        ?? '—',
+                                    'mfg_date' => $item->batch?->manufacturing_date
+                                        ?? $item->manufacturing_date,
+                                    'exp_date' => $item->batch?->expiration_date
+                                        ?? $item->expiration_date,
+                                    'quantity' => (int) ($item->quantity ?? 0),
+                                    'unit_cost' => is_null($item->unit_cost) ? null : (float) $item->unit_cost,
+                                    'amount' => is_null($item->unit_cost)
+                                        ? null
+                                        : ((int) ($item->quantity ?? 0) * (float) $item->unit_cost),
+                                ];
+                            })->values();
+
+                            $receiptPayload = [
+                                'reference_no' => $t->reference_no ?? '—',
+                                'transaction_type' => $t->transaction_type ?? '—',
+                                'transaction_date' => $t->transaction_date
+                                    ? \Carbon\Carbon::parse($t->transaction_date)->format('Y-m-d h:i A')
+                                    : '—',
+                                'status' => $t->status ?? '—',
+                                'shelf' => $t->shelf?->shelf_number ?? '—',
+                                'renter' => $t->renter?->renter_company_name ?? '—',
+                                'actioned_by' => $t->actionedBy?->name ?? '—',
+                                'remarks' => $t->remarks ?? '—',
+                                'items' => $receiptItems,
+                            ];
+                        @endphp
+
                         <tr>
                             <td>{{ \Carbon\Carbon::parse($t->transaction_date)->format('Y-m-d') }}</td>
                             <td>{{ $t->reference_no ?? '—' }}</td>
@@ -574,10 +716,18 @@
                             </td>
                             <td>{{ $t->actionedBy?->name ?? '—' }}</td>
                             <td>{{ $t->remarks ?? '—' }}</td>
+                            <td class="align-center">
+                                <button
+                                    type="button"
+                                    class="btn-action-chip js-open-receipt"
+                                    data-receipt='@json($receiptPayload)'>
+                                    View
+                                </button>
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="empty-state">No transactions yet.</td>
+                            <td colspan="9" class="empty-state">No transactions yet.</td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -586,6 +736,7 @@
     </section>
 </div>
 
+{{-- MANAGE ITEMS MODAL --}}
 <div class="modal-backdrop" id="itemsModal" style="display:none;">
     <div class="modal-card modal-card-lg" role="dialog" aria-modal="true" aria-labelledby="itemsModalTitle">
         <div class="modal-head modal-head-clean">
@@ -630,6 +781,111 @@
     </div>
 </div>
 
+{{-- RECEIPT MODAL --}}
+<div class="modal-backdrop" id="receiptModal" style="display:none;">
+    <div class="modal-card modal-card-lg" role="dialog" aria-modal="true" aria-labelledby="receiptModalTitle">
+        <div class="modal-head modal-head-clean">
+            <div>
+                <div class="modal-title" id="receiptModalTitle">Transaction Receipt</div>
+                <div class="modal-sub">View inventory transaction details</div>
+            </div>
+            <button class="modal-close" type="button" id="receiptModalClose">✕</button>
+        </div>
+
+        <div class="modal-body modal-body-clean">
+            <div class="receipt-head">
+                <div>
+                    <div class="receipt-title">Receipt</div>
+                    <div class="receipt-subtitle">Inventory transaction summary</div>
+                </div>
+
+                <div class="align-right">
+                    <div class="receipt-ref-label">Reference No.</div>
+                    <div id="r_reference" class="receipt-ref-value">—</div>
+                </div>
+            </div>
+
+            <div class="receipt-card">
+                <div class="receipt-card-top">
+                    <div class="receipt-grid">
+                        <div>
+                            <div class="receipt-field-label">Transaction Type</div>
+                            <div id="r_type" class="receipt-field-value">—</div>
+                        </div>
+
+                        <div>
+                            <div class="receipt-field-label">Date</div>
+                            <div id="r_date" class="receipt-field-value">—</div>
+                        </div>
+
+                        <div>
+                            <div class="receipt-field-label">Status</div>
+                            <div id="r_status" class="receipt-field-value">—</div>
+                        </div>
+
+                        <div>
+                            <div class="receipt-field-label">Actioned By</div>
+                            <div id="r_actioned_by" class="receipt-field-value">—</div>
+                        </div>
+
+                        <div>
+                            <div class="receipt-field-label">Shelf</div>
+                            <div id="r_shelf" class="receipt-field-value">—</div>
+                        </div>
+
+                        <div>
+                            <div class="receipt-field-label">Renter</div>
+                            <div id="r_renter" class="receipt-field-value">—</div>
+                        </div>
+                    </div>
+
+                    <div class="receipt-remarks">
+                        <div class="receipt-field-label">Remarks</div>
+                        <div id="r_remarks" class="receipt-field-value">—</div>
+                    </div>
+                </div>
+
+                <div class="receipt-items-section">
+                    <div class="receipt-items-title">Included Items</div>
+
+                    <div class="receipt-items-scroll">
+                        <table class="activity-table receipt-items-table">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Lot No.</th>
+                                    <th>MFG</th>
+                                    <th>EXP</th>
+                                    <th class="align-right">Qty</th>
+                                    <th class="align-right">Unit Cost</th>
+                                    <th class="align-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receiptItemsTbody">
+                                <tr>
+                                    <td colspan="7" class="empty-state">No items found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="receipt-total-row">
+                        <div class="receipt-total-box">
+                            <span>Grand Total</span>
+                            <span id="receiptGrandTotal">—</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-foot modal-foot-clean">
+            <button class="btn-outline" type="button" id="receiptPrintBtn">Print</button>
+            <button class="btn-action-chip" type="button" id="receiptModalOk">Close</button>
+        </div>
+    </div>
+</div>
+
 <script>
 (function () {
     const modal = document.getElementById('itemsModal');
@@ -642,6 +898,22 @@
     const btnStockOut = document.getElementById('btnStockOut');
     const btnAdjust = document.getElementById('btnAdjust');
 
+    const receiptModal = document.getElementById('receiptModal');
+    const receiptModalClose = document.getElementById('receiptModalClose');
+    const receiptModalOk = document.getElementById('receiptModalOk');
+    const receiptPrintBtn = document.getElementById('receiptPrintBtn');
+
+    const rReference = document.getElementById('r_reference');
+    const rType = document.getElementById('r_type');
+    const rDate = document.getElementById('r_date');
+    const rStatus = document.getElementById('r_status');
+    const rActionedBy = document.getElementById('r_actioned_by');
+    const rShelf = document.getElementById('r_shelf');
+    const rRenter = document.getElementById('r_renter');
+    const rRemarks = document.getElementById('r_remarks');
+    const receiptItemsTbody = document.getElementById('receiptItemsTbody');
+    const receiptGrandTotal = document.getElementById('receiptGrandTotal');
+
     let currentShelfId = null;
 
     function openModal() {
@@ -651,6 +923,16 @@
 
     function closeModal() {
         modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    function openReceiptModal() {
+        receiptModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeReceiptModal() {
+        receiptModal.style.display = 'none';
         document.body.style.overflow = '';
     }
 
@@ -673,6 +955,11 @@
         } catch (e) {
             return '₱' + val.toFixed(2);
         }
+    }
+
+    function formatDate(val) {
+        if (!val || val === '—') return '—';
+        return val;
     }
 
     document.querySelectorAll('.js-open-items').forEach(btn => {
@@ -704,6 +991,55 @@
         });
     });
 
+    document.querySelectorAll('.js-open-receipt').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const receipt = JSON.parse(btn.getAttribute('data-receipt') || '{}');
+            const items = receipt.items || [];
+
+            rReference.textContent = receipt.reference_no || '—';
+            rType.textContent = receipt.transaction_type || '—';
+            rDate.textContent = formatDate(receipt.transaction_date);
+            rStatus.textContent = receipt.status || '—';
+            rActionedBy.textContent = receipt.actioned_by || '—';
+            rShelf.textContent = receipt.shelf || '—';
+            rRenter.textContent = receipt.renter || '—';
+            rRemarks.textContent = receipt.remarks || '—';
+
+            let grandTotal = 0;
+            let hasAnyAmount = false;
+
+            if (!items.length) {
+                receiptItemsTbody.innerHTML = `<tr><td colspan="7" class="empty-state">No items found for this transaction.</td></tr>`;
+            } else {
+                receiptItemsTbody.innerHTML = items.map(item => {
+                    const unitCost = item.unit_cost;
+                    const amount = item.amount;
+
+                    if (amount !== null && amount !== undefined) {
+                        grandTotal += Number(amount);
+                        hasAnyAmount = true;
+                    }
+
+                    return `
+                        <tr>
+                            <td><strong>${escapeHtml(item.product_name || 'Unknown Product')}</strong></td>
+                            <td>${escapeHtml(item.lot_number || '—')}</td>
+                            <td>${escapeHtml(item.mfg_date || '—')}</td>
+                            <td>${escapeHtml(item.exp_date || '—')}</td>
+                            <td class="align-right">${Number(item.quantity || 0)}</td>
+                            <td class="align-right">${unitCost === null || unitCost === undefined ? '—' : peso(unitCost)}</td>
+                            <td class="align-right">${amount === null || amount === undefined ? '—' : peso(amount)}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            receiptGrandTotal.textContent = hasAnyAmount ? peso(grandTotal) : '—';
+
+            openReceiptModal();
+        });
+    });
+
     btnStockIn.addEventListener('click', () => {
         if (!currentShelfId) return;
         window.location.href = `{{ route('staff.inventory.stockin.create') }}?shelf_id=${encodeURIComponent(currentShelfId)}`;
@@ -719,6 +1055,10 @@
         window.location.href = `{{ route('staff.inventory.adjust.create') }}?shelf_id=${encodeURIComponent(currentShelfId)}`;
     });
 
+    receiptPrintBtn.addEventListener('click', () => {
+        window.print();
+    });
+
     closeBtn.addEventListener('click', closeModal);
     okBtn.addEventListener('click', closeModal);
 
@@ -726,8 +1066,16 @@
         if (e.target === modal) closeModal();
     });
 
+    receiptModalClose.addEventListener('click', closeReceiptModal);
+    receiptModalOk.addEventListener('click', closeReceiptModal);
+
+    receiptModal.addEventListener('click', (e) => {
+        if (e.target === receiptModal) closeReceiptModal();
+    });
+
     window.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+        if (e.key === 'Escape' && receiptModal.style.display !== 'none') closeReceiptModal();
     });
 
     document.querySelectorAll('.js-collapsible-panel').forEach(panel => {
